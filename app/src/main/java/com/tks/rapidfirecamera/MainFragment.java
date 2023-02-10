@@ -1,7 +1,12 @@
 package com.tks.rapidfirecamera;
 
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -40,5 +45,37 @@ public class MainFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         // TODO: Use the ViewModel
+
+
+    }
+
+    public static class ErrorDialog extends DialogFragment {
+        private static final String ARG_MESSAGE = "message";
+        public static ErrorDialog newInstance(String message) {
+            ErrorDialog dialog = new ErrorDialog();
+            Bundle args = new Bundle();
+            args.putString(ARG_MESSAGE, message);
+            dialog.setArguments(args);
+            return dialog;
+        }
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+            final Activity activity = getActivity();
+            if(activity == null) throw new RuntimeException("illegal state!! activity is null!!");
+            android.os.Bundle bundle = getArguments();
+            if(bundle == null) throw new RuntimeException("illegal state!! bundle is null!!");
+
+            return new AlertDialog.Builder(activity)
+                    .setMessage(bundle.getString(ARG_MESSAGE))
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            activity.finish();
+                        }
+                    })
+                    .create();
+        }
     }
 }

@@ -55,6 +55,12 @@ public class MainFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         // TODO: Use the ViewModel
+
+        /* 設定ボタンの再配置 */
+        WindowMetrics windowMetrics = getActivity().getWindowManager().getCurrentWindowMetrics();
+        Insets insets = windowMetrics.getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+        view.findViewById(R.id.btn_config).setTranslationY(insets.top+1);
+        view.findViewById(R.id.ll_configcontainer).setTranslationY(insets.top+1);
     }
 
     public static class ErrorDialog extends DialogFragment {

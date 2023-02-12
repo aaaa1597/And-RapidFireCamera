@@ -3,11 +3,14 @@ package com.tks.rapidfirecamera;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
@@ -56,13 +59,34 @@ public class MainFragment extends Fragment {
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         // TODO: Use the ViewModel
 
+        final FragmentActivity activity = getActivity();
+        if(activity == null)
+            throw new RuntimeException("Error occurred!! illigal state in this app. activity is null!!");
+
         /* 設定ボタンの再配置 */
-        WindowMetrics windowMetrics = getActivity().getWindowManager().getCurrentWindowMetrics();
+        WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
         Insets insets = windowMetrics.getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
         view.findViewById(R.id.btn_config).setTranslationY(insets.top+1);
         view.findViewById(R.id.ll_configcontainer).setTranslationY(insets.top+1);
+
+        /* 設定ボタン押下イベント生成 */
+        view.findViewById(R.id.btn_setting).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                activity.getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.container, new ConfigFragment())
+                                .commit();
+            }
+        });
+
+        SharedPreferences sharedPref = getActivity().getSharedPreferences(PREF_APPSETTING, Context.MODE_PRIVATE);
+        String savepath = sharedPref.getString(PREF_SAVEPATH, "/storage/emulated/0/RapidFireCamera");
+
     }
 
+    /**************************************
+     * Utils
+     * ************************************/
     public static class ErrorDialog extends DialogFragment {
         private static final String ARG_MESSAGE = "message";
         public static ErrorDialog newInstance(String message) {
@@ -93,4 +117,6 @@ public class MainFragment extends Fragment {
         }
     }
 
+    private static final String PREF_APPSETTING = "AppSetting";
+    private static final String PREF_SAVEPATH = "SavePath";
 }

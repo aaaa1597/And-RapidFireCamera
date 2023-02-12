@@ -7,6 +7,6 @@
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
     <string name="str_illigal_state">It became an illigal state inside the app.</string>
     <string name="str_config">Config</string>
-    <string name="str_resolution">Resolution</string>
-    <string name="str_filelocation">File location</string>
+    <string name="str_resolution">解像度</string>
+    <string name="str_filelocation">保存場所</string>
 </resources>

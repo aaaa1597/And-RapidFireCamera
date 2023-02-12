@@ -4,6 +4,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.os.Bundle;
 
@@ -19,8 +20,7 @@ public class MainActivity extends AppCompatActivity {
         getWindow().setNavigationBarContrastEnforced(false);
 
         /* get camera permission */
-        ActivityResultLauncher<String> launcher
-                = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
+        ActivityResultLauncher<String> launcher = registerForActivityResult(new ActivityResultContracts.RequestPermission(),
                 (isGranted) -> {
                     if (isGranted) {
                         /* 権限取得 OK時 -> Fragment追加 */
@@ -38,5 +38,10 @@ public class MainActivity extends AppCompatActivity {
 
         /* request camera permission */
         launcher.launch(android.Manifest.permission.CAMERA);
+
+        MainViewModel viewmodel = new ViewModelProvider(this).get(MainViewModel.class);
+//        model.getUiState().observe(this, uiState -> {
+//            // update UI
+//        });
     }
 }

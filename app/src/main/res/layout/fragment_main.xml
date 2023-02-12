@@ -3,10 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#8888fffe"
     tools:context=".MainFragment">
 
     <com.tks.rapidfirecamera.AutoFitTextureView
-        android:id="@+id/texture"
+        android:id="@+id/tvw_preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         tools:ignore="RelativeOverlap" />

@@ -2,6 +2,7 @@ package com.tks.rapidfirecamera;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -206,6 +207,14 @@ public class ConfigFragment extends Fragment {
                     public void onClick(View v) {
                         /* 撮像解像度の値を設定(->文字列の更新は、非同期でonChageCurrentResolutionSize().observe()の処理が動くのでそこで実行) */
                         mViewModel.setCurrentResolutionSize(new Size(resolution.getWidth(), resolution.getHeight()));
+
+                        /* SharedPreferenceにも撮像解像度の値を設定 */
+                        SharedPreferences sharedPref = v.getContext().getSharedPreferences(ConfigFragment.PREF_APPSETTING, Context.MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sharedPref.edit();
+                        editor.putInt(ConfigFragment.PREF_KEY_RESOLUTION_W, resolution.getWidth());
+                        editor.putInt(ConfigFragment.PREF_KEY_RESOLUTION_H, resolution.getHeight());
+                        editor.apply();
+
                         String strmsg = getString(R.string.set_the_resolution, resolution.getWidth(), resolution.getHeight());
                         Toast.makeText(v.getContext(), strmsg, Toast.LENGTH_SHORT).show();
                         getDialog().dismiss();

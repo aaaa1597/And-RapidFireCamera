@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">RapidFireCamera</string>
     <string name="str_todo">TODO</string>
     <string name="str_open"><![CDATA[<<]]></string>
@@ -9,4 +9,6 @@
     <string name="str_config">設定</string>
     <string name="str_resolution">解像度</string>
     <string name="str_filelocation">保存場所</string>
+    <string name="choose_a_resolution">解像度選択</string>
+    <string name="set_the_resolution">解像度に %1$dx%2$d を設定しました。</string>
 </resources>

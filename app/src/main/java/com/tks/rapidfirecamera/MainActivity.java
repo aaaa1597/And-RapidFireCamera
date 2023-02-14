@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
             editor.putInt(ConfigFragment.PREF_KEY_RESOLUTION_H, resolutionh);
             editor.apply();
         }
-        viewmodel.setResolutionSize(new Size(resolutionw, resolutionh));
+        viewmodel.setCurrentResolutionSize(new Size(resolutionw, resolutionh));
     }
 
     @Override

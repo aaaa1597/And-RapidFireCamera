@@ -6,13 +6,15 @@ import androidx.lifecycle.ViewModel;
 
 public class MainViewModel extends ViewModel {
     private String mSavePath;
-    private Size ResolutionSize;
+    private Size mResolutionSize;
+    String mCameraId;
+    private Size[] mSupportedResolutionSizes;
 
     public void setSavePath(String savepath) {
         mSavePath = savepath;
     }
     public void setResolutionSize(Size resolutionSize) {
-        ResolutionSize = resolutionSize;
+        mResolutionSize = resolutionSize;
     }
 
     public String getSavePath() {
@@ -20,6 +22,19 @@ public class MainViewModel extends ViewModel {
     }
 
     public Size getResolutionSize() {
-        return ResolutionSize;
+        return mResolutionSize;
+    }
+
+    public Size[] getSupportedResolutionSizes() {
+        return mSupportedResolutionSizes;
+
+    }
+
+    public void setSupportedResolutionSizes(Size[] supportedResolutionSizes) {
+        mSupportedResolutionSizes = supportedResolutionSizes;
+    }
+
+    public void setCameraId(String cameraId) {
+        mCameraId = cameraId;
     }
 }

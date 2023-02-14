@@ -7,8 +7,15 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
 import android.graphics.Insets;
+import android.graphics.SurfaceTexture;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -17,6 +24,8 @@ import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Log;
+import android.util.Size;
 import android.util.SparseIntArray;
 import android.view.LayoutInflater;
 import android.view.Surface;
@@ -28,7 +37,6 @@ import android.view.WindowMetrics;
 public class MainFragment extends Fragment {
     private MainViewModel mViewModel;
     private AutoFitTextureView mTextureView;
-    private String mCameraId;
     private HandlerThread mBackgroundThread;
     private Handler mBackgroundHandler;
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -73,6 +81,30 @@ public class MainFragment extends Fragment {
             }
         });
 
+        /* カメラデバイスIDの確定と、そのCameraがサポートしている解像度リストを取得 */
+        CameraManager manager = (CameraManager)activity.getSystemService(Context.CAMERA_SERVICE);
+        try {
+            for(String cameraId : manager.getCameraIdList()) {
+                CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+                /* フロントカメラは対象外 */
+                Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
+                if(facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT)
+                    continue;
+
+                /* streamConfig mapが取れなければ対象外 */
+                StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                if(map == null)
+                    continue;
+
+                mViewModel.setCameraId(cameraId);
+                mViewModel.setSupportedResolutionSizes(map.getOutputSizes(SurfaceTexture.class));
+                break;
+            }
+        }
+        catch(CameraAccessException e) {
+            Log.d("aaaaa", e.toString());
+            throw new RuntimeException("Error!! Camera is illigal state!!");
+        }
     }
 
     /**************************************

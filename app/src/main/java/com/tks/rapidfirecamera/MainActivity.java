@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         }
         viewmodel.setSavePath(savepath);
 
-        /* 解像度 読込み */
+        /* 撮像解像度の設定 */
         int resolutionw = sharedPref.getInt(ConfigFragment.PREF_KEY_RESOLUTION_W, -1);
         int resolutionh = sharedPref.getInt(ConfigFragment.PREF_KEY_RESOLUTION_H, -1);
         if(resolutionw == -1 || resolutionh == -1) {

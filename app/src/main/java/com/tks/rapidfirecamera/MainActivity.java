@@ -4,9 +4,11 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
+import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.os.Bundle;
+import android.view.KeyEvent;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,5 +45,20 @@ public class MainActivity extends AppCompatActivity {
 //        model.getUiState().observe(this, uiState -> {
 //            // update UI
 //        });
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
+            /* コンフィグ画面時のBackイベントは、撮像画面に戻る。 */
+            if(getSupportFragmentManager().getFragments().get(0) instanceof ConfigFragment) {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.container, MainFragment.newInstance())
+                        .commit();
+                return true;
+            }
+        }
+
+        return super.onKeyDown(keyCode, event);
     }
 }

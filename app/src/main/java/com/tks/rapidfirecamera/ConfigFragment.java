@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConfigFragment extends Fragment {
-    public static ConfigFragment newInstance(String param1, String param2) {
+    public static ConfigFragment newInstance() {
         return new ConfigFragment();
     }
 

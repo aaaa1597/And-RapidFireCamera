@@ -1,6 +1,5 @@
 package com.tks.rapidfirecamera;
 
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
@@ -8,11 +7,8 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.content.Context;
 import android.content.DialogInterface;
-import android.content.SharedPreferences;
 import android.graphics.Insets;
-import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -27,7 +23,6 @@ import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
-import android.view.WindowManager;
 import android.view.WindowMetrics;
 
 public class MainFragment extends Fragment {
@@ -57,7 +52,6 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
-        // TODO: Use the ViewModel
 
         final FragmentActivity activity = getActivity();
         if(activity == null)
@@ -78,9 +72,6 @@ public class MainFragment extends Fragment {
                                 .commit();
             }
         });
-
-        SharedPreferences sharedPref = getActivity().getSharedPreferences(PREF_APPSETTING, Context.MODE_PRIVATE);
-        String savepath = sharedPref.getString(PREF_SAVEPATH, "/storage/emulated/0/RapidFireCamera");
 
     }
 
@@ -116,7 +107,4 @@ public class MainFragment extends Fragment {
                     .create();
         }
     }
-
-    private static final String PREF_APPSETTING = "AppSetting";
-    private static final String PREF_SAVEPATH = "SavePath";
 }

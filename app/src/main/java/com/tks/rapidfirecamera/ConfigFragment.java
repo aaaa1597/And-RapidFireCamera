@@ -6,22 +6,27 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class ConfigFragment extends Fragment {
+    private MainViewModel mViewModel;
+    public static final String PREF_APPSETTING = "APPSETTING";
+    public static final String PREF_KEY_SAVEPATH     = "Key_SavePath";
+    public static final String PREF_KEY_RESOLUTION_H = "Key_Resolution_H";
+    public static final String PREF_KEY_RESOLUTION_W = "Key_Resolution_W";
     public static ConfigFragment newInstance() {
         return new ConfigFragment();
     }
@@ -34,22 +39,23 @@ public class ConfigFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        mViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         Activity activity = getActivity();
         if(activity==null)
             throw new RuntimeException("Error occurred!! illigal state in this app. activity is null!!");
 
         RecyclerView configRvw = activity.findViewById(R.id.rvw_config);
-        /* BLEデバイスリストに区切り線を表示 */
+        /* 区切り線を表示 */
         DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(configRvw.getContext(), new LinearLayoutManager(getActivity().getApplicationContext()).getOrientation());
         configRvw.addItemDecoration(dividerItemDecoration);
         configRvw.setHasFixedSize(true);
         configRvw.setLayoutManager(new LinearLayoutManager(getActivity().getApplicationContext()));
         configRvw.setAdapter(new ConfigAdapter());
 
-        /* ダミーデータ */
-        mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_resolution), "aaaa002"));
-        mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_filelocation), "aaaa002"));
+        /* 現在値設定 */
+        mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_resolution), String.format(Locale.JAPAN, "%dx%d", mViewModel.getResolutionSize().getWidth(), mViewModel.getResolutionSize().getHeight())));
+        mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_filelocation), mViewModel.getSavePath()));
     }
 
     /* メンバ変数 */

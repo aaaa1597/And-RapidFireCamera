@@ -4,11 +4,16 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
-import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Environment;
+import android.util.Size;
 import android.view.KeyEvent;
+
+import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,10 +46,38 @@ public class MainActivity extends AppCompatActivity {
         /* request camera permission */
         launcher.launch(android.Manifest.permission.CAMERA);
 
+        /* ViewModelインスタンス生成 */
         MainViewModel viewmodel = new ViewModelProvider(this).get(MainViewModel.class);
-//        model.getUiState().observe(this, uiState -> {
-//            // update UI
-//        });
+
+        /* 設定読込み */
+        SharedPreferences sharedPref = getSharedPreferences(ConfigFragment.PREF_APPSETTING, Context.MODE_PRIVATE);
+
+        /* 保存場所 読込み */
+        String savepath = sharedPref.getString(ConfigFragment.PREF_KEY_SAVEPATH, "");
+        if(savepath.equals("")) {
+            /* 外部保存先を取得する(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)配下しか対象にしない) */
+            String defalutsavepath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/Rapidfie";
+            File defalutsavefile = new File(defalutsavepath);
+            defalutsavefile.mkdirs();
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putString(ConfigFragment.PREF_KEY_SAVEPATH, defalutsavefile.getAbsolutePath());
+            editor.apply();
+            savepath = defalutsavefile.getAbsolutePath();
+        }
+        viewmodel.setSavePath(savepath);
+
+        /* 解像度 読込み */
+        int resolutionw = sharedPref.getInt(ConfigFragment.PREF_KEY_RESOLUTION_W, -1);
+        int resolutionh = sharedPref.getInt(ConfigFragment.PREF_KEY_RESOLUTION_H, -1);
+        if(resolutionw == -1 || resolutionh == -1) {
+            resolutionw = 1920;
+            resolutionh = 1080;
+            SharedPreferences.Editor editor = sharedPref.edit();
+            editor.putInt(ConfigFragment.PREF_KEY_RESOLUTION_W, resolutionw);
+            editor.putInt(ConfigFragment.PREF_KEY_RESOLUTION_H, resolutionh);
+            editor.apply();
+        }
+        viewmodel.setResolutionSize(new Size(resolutionw, resolutionh));
     }
 
     @Override

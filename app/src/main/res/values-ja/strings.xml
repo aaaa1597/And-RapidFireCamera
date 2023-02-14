@@ -3,10 +3,10 @@
     <string name="str_todo">TODO</string>
     <string name="str_open"><![CDATA[<<]]></string>
     <string name="str_close"><![CDATA[>>]]></string>
-    <string name="request_permission">This app needs camera permission.\n\nQuit the this app.</string>
-    <string name="camera_error">This device doesn\'t support Camera2 API.</string>
-    <string name="str_illigal_state">It became an illigal state inside the app.</string>
-    <string name="str_config">Config</string>
+    <string name="request_permission">camera権限が必要です。 \n\nアプリを終了します.</string>
+    <string name="camera_error">このアプリでは、Camera2 APIを使用しますが、デバイスが対応していません。</string>
+    <string name="str_illigal_state">アプリ内部で不正な状態になりました.</string>
+    <string name="str_config">設定</string>
     <string name="str_resolution">解像度</string>
     <string name="str_filelocation">保存場所</string>
 </resources>

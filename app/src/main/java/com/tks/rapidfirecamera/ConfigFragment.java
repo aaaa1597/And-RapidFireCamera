@@ -120,7 +120,7 @@ public class ConfigFragment extends Fragment {
                 }
                 /* 保存場所押下 */
                 else if(itemname.equals(context.getResources().getString(R.string.str_filelocation))) {
-
+                    Toast.makeText(context.getApplicationContext(), getString(R.string.cant_change_the_path), Toast.LENGTH_SHORT).show();
                 }
                 return "";
             };

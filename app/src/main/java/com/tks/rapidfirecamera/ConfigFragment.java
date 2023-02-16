@@ -64,7 +64,7 @@ public class ConfigFragment extends Fragment {
         mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_filelocation), mViewModel.getSavePath()));
 
         /* 撮像解像度を変更した時の動作 */
-        mViewModel.onChageCurrentResolutionSize().observe(getViewLifecycleOwner(), size -> {
+        mViewModel.setOnChageCurrentResolutionSizeListner().observe(getViewLifecycleOwner(), size -> {
             for(ConfigItem item : mConfigItems) {
                 /* 撮像解像度の文字列を設定(値は設定済) */
                 if(item.mItemName.equals(activity.getResources().getString(R.string.str_resolution))) {

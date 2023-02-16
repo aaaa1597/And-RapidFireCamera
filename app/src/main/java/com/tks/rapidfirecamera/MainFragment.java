@@ -33,6 +33,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowInsets;
 import android.view.WindowMetrics;
+import android.view.animation.RotateAnimation;
 
 public class MainFragment extends Fragment {
     private MainViewModel mViewModel;
@@ -48,28 +49,45 @@ public class MainFragment extends Fragment {
     }
 
     public static MainFragment newInstance() {
+        Log.d("aaaaa", "MainFragment::newInstance()");
         return new MainFragment();
     }
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+    }
+
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        Log.d("aaaaa", "MainFragment::onCreateView()");
         return inflater.inflate(R.layout.fragment_main, container, false);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        Log.d("aaaaa", "MainFragment::onViewCreated()");
         mViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         final FragmentActivity activity = getActivity();
         if(activity == null)
             throw new RuntimeException("Error occurred!! illigal state in this app. activity is null!!");
 
+        /* 画面回転イベントの設定 */
+        mViewModel.setOnChageRotationListner().observe(getViewLifecycleOwner(), rotfromto -> {
+            RotateAnimation rotanim = new RotateAnimation(rotfromto.first, rotfromto.second, view.findViewById(R.id.btn_setting).getPivotX(), view.findViewById(R.id.btn_setting).getPivotY());
+            rotanim.setDuration(500);
+            rotanim.setFillAfter(true);
+            view.findViewById(R.id.btn_setting).startAnimation(rotanim);
+            view.findViewById(R.id.btn_settingaaa).startAnimation(rotanim);
+        });
+
+
         /* 設定ボタンの再配置 */
         WindowMetrics windowMetrics = activity.getWindowManager().getCurrentWindowMetrics();
         Insets insets = windowMetrics.getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
-        view.findViewById(R.id.btn_config).setTranslationY(insets.top+1);
-        view.findViewById(R.id.ll_configcontainer).setTranslationY(insets.top+1);
+        view.findViewById(R.id.ll_config).setTranslationY(insets.top+1);
 
         /* 設定ボタン押下イベント生成 */
         view.findViewById(R.id.btn_setting).setOnClickListener(new View.OnClickListener() {

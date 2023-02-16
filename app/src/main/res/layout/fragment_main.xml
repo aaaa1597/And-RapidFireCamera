@@ -12,58 +12,42 @@
         android:layout_height="wrap_content"
         tools:ignore="RelativeOverlap" />
 
-    <ToggleButton
-        android:id="@+id/btn_config"
-        android:layout_width="48dp"
-        android:layout_height="wrap_content"
-        android:textOn="@string/str_close"
-        android:textOff="@string/str_open"
-        android:layout_alignParentEnd="true"
-        android:layout_marginEnd="20dp"
-        tools:ignore="RelativeOverlap" />
-
-    <LinearLayout
-        android:id="@+id/ll_configcontainer"
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:id="@+id/ll_config"
         android:layout_width="wrap_content"
+        android:layout_marginEnd="10dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_toStartOf="@id/btn_config">
+        android:layout_alignParentEnd="true">
 
         <ImageButton
             style="@android:style/Widget.Material.Light.Button.Borderless"
             android:id="@+id/btn_settingaaa"
-            android:layout_width="48dp"
+            android:layout_width="32dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_below="@id/btn_setting"
             android:src="@drawable/img_setting"
             android:contentDescription="@string/str_todo" />
 
         <ImageButton
             style="@android:style/Widget.Material.Light.Button.Borderless"
             android:id="@+id/btn_setting"
-            android:layout_width="48dp"
+            android:layout_width="32dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_marginStart="5dp"
             android:src="@drawable/img_setting"
             android:contentDescription="@string/str_todo" />
 
-    </LinearLayout>
-    
-    <FrameLayout
-        android:id="@+id/control"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:paddingBottom="40dp">
+    </androidx.appcompat.widget.LinearLayoutCompat>
 
-        <ImageButton
-            style="@android:style/Widget.Material.Light.Button.Borderless"
-            android:id="@+id/btn_shutter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:src="@drawable/img_shutter"
-            android:contentDescription="@string/str_todo" />
-    </FrameLayout>
+    <ImageButton
+        style="@android:style/Widget.Material.Light.Button.Borderless"
+        android:id="@+id/btn_shutter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="20dp"
+        android:src="@drawable/img_shutter"
+        android:contentDescription="@string/str_todo" />
 
 </RelativeLayout>

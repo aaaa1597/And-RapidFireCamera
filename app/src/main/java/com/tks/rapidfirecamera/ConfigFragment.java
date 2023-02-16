@@ -18,12 +18,15 @@ import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import kotlin.jvm.functions.Function2;
 
@@ -116,7 +119,11 @@ public class ConfigFragment extends Fragment {
             Function2<Context, String, String> assignExecution = (context, itemname) -> {
                 /* 解像度押下 */
                 if(itemname.equals(context.getResources().getString(R.string.str_resolution))) {
-                    SelectResolutionDialog.newInstance(mViewModel.getSupportedResolutionSizes(), mViewModel).show(getChildFragmentManager(), null);
+                    /* 撮影解像度のindexを、Cameraデバイスの解像度リストから求める */
+                    List<Size> resolutions = Arrays.asList(mViewModel.getSupportedResolutionSizes());
+                    int index = resolutions.indexOf(mViewModel.getCurrentResolutionSize());
+                    /* 選択ダイアログ表示 */
+                    SelectResolutionDialog.newInstance(mViewModel.getSupportedResolutionSizes(), index).show(getChildFragmentManager(), null);
                 }
                 /* 保存場所押下 */
                 else if(itemname.equals(context.getResources().getString(R.string.str_filelocation))) {
@@ -150,22 +157,23 @@ public class ConfigFragment extends Fragment {
      * 解像度押下 -> 解像度選択ダイアログ
      *******************************/
     public static class SelectResolutionDialog extends DialogFragment {
+        private MainViewModel mViewModel;
         private RecyclerView mRecyclerView;
         private final Size[] mResolutions;
-        private MainViewModel mViewModel;
-        private SelectResolutionDialog(Size[] resolutions, MainViewModel viewModel) {
+        private int mPos = -1;
+        private SelectResolutionDialog(Size[] resolutions, int pos) {
             mResolutions = resolutions;
-            mViewModel = viewModel;
+            mPos         = pos;
         }
-        public static SelectResolutionDialog newInstance(Size[] resolutions, MainViewModel viewModel) {
-            return new SelectResolutionDialog(resolutions, viewModel);
+        public static SelectResolutionDialog newInstance(Size[] resolutions, int pos) {
+            return new SelectResolutionDialog(resolutions, pos);
         }
 
         @Nullable
         @Override
         public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-            View view = inflater.inflate(R.layout.dialogfragment_selectresolution, container, false);
-            mRecyclerView = (RecyclerView) view.findViewById(R.id.rvw_resolution);
+            View view    = inflater.inflate(R.layout.dialogfragment_selectresolution, container, false);
+            mRecyclerView= view.findViewById(R.id.rvw_resolution);
             return view;
         }
 
@@ -173,20 +181,22 @@ public class ConfigFragment extends Fragment {
         public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
             super.onViewCreated(view, savedInstanceState);
 
+            mViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
             /* 区切り線を表示 */
             DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(view.getContext(), new LinearLayoutManager(getActivity().getApplicationContext()).getOrientation());
             mRecyclerView.addItemDecoration(dividerItemDecoration);
             mRecyclerView.setHasFixedSize(true);
             mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity().getApplicationContext()));
             mRecyclerView.setAdapter(new SelectResolutionAdapter());
+            mRecyclerView.scrollToPosition(mPos);
         }
 
         class SelectResolutionAdapter extends RecyclerView.Adapter<SelectResolutionAdapter.ViewHolder> {
             class ViewHolder extends RecyclerView.ViewHolder {
-                TextView mTxtResolution;
+                RadioButton mRbnResolution;
                 ViewHolder(View view) {
                     super(view);
-                    mTxtResolution = view.findViewById(R.id.txt_resolution);
+                    mRbnResolution = view.findViewById(R.id.rbn_resolution);
                 }
             }
 
@@ -200,9 +210,9 @@ public class ConfigFragment extends Fragment {
             @Override
             public void onBindViewHolder(@NonNull SelectResolutionAdapter.ViewHolder holder, int position) {
                 Size resolution = mResolutions[position];
-                holder.mTxtResolution.setText(String.format(Locale.JAPAN, "%dx%d", resolution.getWidth(), resolution.getHeight()) );
-
-                holder.mTxtResolution.setOnClickListener(new View.OnClickListener() {
+                holder.mRbnResolution.setText(String.format(Locale.JAPAN, "%d x %d", resolution.getWidth(), resolution.getHeight()) );
+                holder.mRbnResolution.setChecked(mPos==position);
+                holder.mRbnResolution.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         /* 撮像解像度の値を設定(->文字列の更新は、非同期でonChageCurrentResolutionSize().observe()の処理が動くのでそこで実行) */
@@ -215,8 +225,15 @@ public class ConfigFragment extends Fragment {
                         editor.putInt(ConfigFragment.PREF_KEY_RESOLUTION_H, resolution.getHeight());
                         editor.apply();
 
+                        /* Toast表示(解像度に 〇 x △ を設定しました。) */
                         String strmsg = getString(R.string.set_the_resolution, resolution.getWidth(), resolution.getHeight());
                         Toast.makeText(v.getContext(), strmsg, Toast.LENGTH_SHORT).show();
+
+                        /* チェック位置を更新 */
+                        mPos = holder.getAbsoluteAdapterPosition();
+                        notifyDataSetChanged();
+
+                        /* ダイアログを消す */
                         getDialog().dismiss();
                     }
                 });

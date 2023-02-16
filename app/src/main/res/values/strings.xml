@@ -10,6 +10,6 @@
     <string name="str_resolution">Resolution</string>
     <string name="str_filelocation">File location</string>
     <string name="choose_a_resolution">Choose a Resolution.</string>
-    <string name="set_the_resolution">set the resolution to %1$dx%2$d.</string>
+    <string name="set_the_resolution">set the resolution to %1$d x %2$d.</string>
     <string name="cant_change_the_path">Can\'t change.</string>
 </resources>

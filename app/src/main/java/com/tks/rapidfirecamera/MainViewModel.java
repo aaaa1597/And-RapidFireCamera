@@ -102,22 +102,12 @@ public class MainViewModel extends ViewModel {
         /* 見つからなかった場合は、指定Sizeと同一アスペクト比の直近の大きめサイズを返却 */
         Size retSameAspectSize = null;
         Size retDiffAspectSize = null;
-        /* アスペクト比を求めるための最大公約数を求める関数 */
-        Function2<Integer, Integer, Integer> getGreatestCommonDivisor = (aaa, bbb) -> {
-            int wk = -1;
-            while(wk != 0) {
-                wk = aaa % bbb;
-                aaa = bbb;
-                bbb = wk;
-            }
-            return aaa;
-        };
         /* アスペクト比を求めるため、先に最大公約数を求める */
-        int gcd = getGreatestCommonDivisor.invoke(w, h);
+        int gcd = getGreatestCommonDivisor(w, h);
         /* ベースのアスペクト比算出 */
         Size baseAspect = new Size(w/gcd, h/gcd);
         for(Size lsize : mSupportedResolutionSizes) {
-            int lgcd = getGreatestCommonDivisor.invoke(lsize.getWidth(), lsize.getHeight());
+            int lgcd = getGreatestCommonDivisor(lsize.getWidth(), lsize.getHeight());
             Size laspect = new Size(lsize.getWidth()/lgcd, lsize.getHeight()/lgcd);
             if( !baseAspect.equals(laspect)) {
                 if(retDiffAspectSize == null) {
@@ -162,4 +152,18 @@ public class MainViewModel extends ViewModel {
     public MutableLiveData<Pair<Integer, Integer>> setOnChageRotationListner() {
         return mRotation;
     }
+
+    /***************
+     * Utils
+     * ************/
+    /* アスペクト比を求めるための最大公約数を求める関数 */
+    static public int getGreatestCommonDivisor(int aaa, int bbb) {
+        int wk = -1;
+        while(wk != 0) {
+            wk = aaa % bbb;
+            aaa = bbb;
+            bbb = wk;
+        }
+        return aaa;
+    };
 }

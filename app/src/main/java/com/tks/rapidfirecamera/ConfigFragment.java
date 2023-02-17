@@ -216,7 +216,8 @@ public class ConfigFragment extends Fragment {
             @Override
             public void onBindViewHolder(@NonNull SelectResolutionAdapter.ViewHolder holder, int position) {
                 Size resolution = mResolutions[position];
-                holder.mRbnResolution.setText(String.format(Locale.JAPAN, "%d x %d", resolution.getWidth(), resolution.getHeight()) );
+                int gcd = MainViewModel.getGreatestCommonDivisor(resolution.getWidth(), resolution.getHeight());
+                holder.mRbnResolution.setText(String.format(Locale.JAPAN, "%d x %d(%d:%d)", resolution.getWidth(), resolution.getHeight(), resolution.getWidth()/gcd, resolution.getHeight()/gcd) );
                 holder.mRbnResolution.setChecked(mPos==position);
                 holder.mRbnResolution.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -237,7 +238,7 @@ public class ConfigFragment extends Fragment {
 
                         /* チェック位置を更新 */
                         mPos = holder.getAbsoluteAdapterPosition();
-                        notifyDataSetChanged();
+                        notifyItemChanged(mPos);
 
                         /* ダイアログを消す */
                         getDialog().dismiss();

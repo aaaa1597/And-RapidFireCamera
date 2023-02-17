@@ -94,7 +94,7 @@ public class MainFragment extends Fragment {
             @Override
             public void onClick(View v) {
                 activity.getSupportFragmentManager().beginTransaction()
-                                .replace(R.id.container, new ConfigFragment())
+                                .replace(R.id.container, ConfigFragment.newInstance())
                                 .commit();
             }
         });

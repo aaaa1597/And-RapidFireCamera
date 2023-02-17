@@ -3,6 +3,7 @@ package com.tks.rapidfirecamera;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -26,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 
 import kotlin.jvm.functions.Function2;
 
@@ -63,16 +63,18 @@ public class ConfigFragment extends Fragment {
         configRvw.setAdapter(new ConfigAdapter());
 
         /* 現在値設定 */
-        mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_resolution), String.format(Locale.JAPAN, "%dx%d", mViewModel.getCurrentResolutionSize().getWidth(), mViewModel.getCurrentResolutionSize().getHeight())));
-        mConfigItems.add(new ConfigItem(activity.getResources().getString(R.string.str_filelocation), mViewModel.getSavePath()));
+        Resources res = activity.getResources();
+        Size ressize  = mViewModel.getCurrentResolutionSize();
+        mConfigItems.add(new ConfigItem(res.getString(R.string.str_resolution)  , String.format(Locale.JAPAN, "%d x %d", ressize.getWidth(), ressize.getHeight())));
+        mConfigItems.add(new ConfigItem(res.getString(R.string.str_filelocation), mViewModel.getSavePath()));
 
         /* 撮像解像度を変更した時の動作 */
         mViewModel.setOnChageCurrentResolutionSizeListner().observe(getViewLifecycleOwner(), size -> {
             for(ConfigItem item : mConfigItems) {
                 /* 撮像解像度の文字列を設定(値は設定済) */
-                if(item.mItemName.equals(activity.getResources().getString(R.string.str_resolution))) {
-                    item.mExplain = String.format(Locale.JAPAN, "%dx%d", size.getWidth(), size.getHeight());
-                    configRvw.getAdapter().notifyDataSetChanged();
+                if(item.mItemName.equals(res.getString(R.string.str_resolution))) {
+                    item.mExplain = String.format(Locale.JAPAN, "%d x %d", size.getWidth(), size.getHeight());
+                    configRvw.getAdapter().notifyItemChanged(mConfigItems.indexOf(item));
                     break;
                 }
             }
@@ -119,6 +121,9 @@ public class ConfigFragment extends Fragment {
             Function2<Context, String, String> assignExecution = (context, itemname) -> {
                 /* 解像度押下 */
                 if(itemname.equals(context.getResources().getString(R.string.str_resolution))) {
+                    /* すでに表示済なら表示しない */
+                    if( SelectResolutionDialog.mIsShowing) return "";
+
                     /* 撮影解像度のindexを、Cameraデバイスの解像度リストから求める */
                     List<Size> resolutions = Arrays.asList(mViewModel.getSupportedResolutionSizes());
                     int index = resolutions.indexOf(mViewModel.getCurrentResolutionSize());
@@ -161,6 +166,7 @@ public class ConfigFragment extends Fragment {
         private RecyclerView mRecyclerView;
         private final Size[] mResolutions;
         private int mPos = -1;
+
         private SelectResolutionDialog(Size[] resolutions, int pos) {
             mResolutions = resolutions;
             mPos         = pos;
@@ -244,5 +250,19 @@ public class ConfigFragment extends Fragment {
                 return mResolutions.length;
             }
         }
+
+        /**　インスタンス制御(一つしか表示しない) */
+        private static boolean mIsShowing = false;
+        @Override
+        public void onCreate(@Nullable Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            mIsShowing = true;
+        }
+        @Override
+        public void onDestroy() {
+            super.onDestroy();
+            mIsShowing = false;
+        }
+
     }
 }

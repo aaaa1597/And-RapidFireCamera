@@ -15,6 +15,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventCallback;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraCharacteristics;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -70,12 +71,34 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Sensor accel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(mSensorEventCallback, accel, SensorManager.SENSOR_DELAY_NORMAL);
+
+        /* TODO 回転しないことを確認したかった。削除予定 */
+        int displayRotation = getWindowManager().getDefaultDisplay().getRotation();
+        if(displayRotation == Surface.ROTATION_0)
+            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_0));
+        else if(displayRotation == Surface.ROTATION_90)
+            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_90));
+        else if(displayRotation == Surface.ROTATION_180)
+            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_180));
+        else if(displayRotation == Surface.ROTATION_270)
+            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_270));
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    protected void onPause() {
+        super.onPause();
         mSensorManager.unregisterListener(mSensorEventCallback);
+
+        /* TODO 回転しないことを確認したかった。削除予定 */
+        int displayRotation = getWindowManager().getDefaultDisplay().getRotation();
+        if(displayRotation == Surface.ROTATION_0)
+            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_0));
+        else if(displayRotation == Surface.ROTATION_90)
+            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_90));
+        else if(displayRotation == Surface.ROTATION_180)
+            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_180));
+        else if(displayRotation == Surface.ROTATION_270)
+            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_270));
     }
 
     @Override

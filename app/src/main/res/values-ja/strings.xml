@@ -12,4 +12,5 @@
     <string name="choose_a_resolution">解像度選択</string>
     <string name="set_the_resolution">解像度に %1$d x %2$d を設定しました。</string>
     <string name="cant_change_the_path">変更はできません。</string>
+    <string name="error_cameracapturesession">Error!! CameraCaptureSession.StateCallbackでエラー発生。\nアプリ終了します。</string>
 </resources>

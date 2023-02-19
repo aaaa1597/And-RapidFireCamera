@@ -1,6 +1,7 @@
 package com.tks.rapidfirecamera;
 
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Environment;
 import android.util.Pair;
 import android.util.Size;
@@ -27,6 +28,7 @@ public class MainViewModel extends ViewModel {
      * 画像保存場所
      * ************/
     private String mSavePath = "";
+    private Uri mSaveUri;
     public String getSavePath() {
         if(mSavePath.equals("")) {
             /* 保存場所 読込み */
@@ -44,15 +46,34 @@ public class MainViewModel extends ViewModel {
                 editor.apply();
             }
         }
+        mSaveUri = Uri.fromFile(new File(mSavePath));
         return mSavePath;
+    }
+    public Uri getSaveUri() {
+        if(mSaveUri == null) getSavePath();
+        return mSaveUri;
     }
 
     /***************
      * カメラId
      * ************/
-    String mCameraId;
+    private String mCameraId;
     public void setCameraId(String cameraId) {
         mCameraId = cameraId;
+    }
+    public String getCameraId() {
+        return mCameraId;
+    }
+
+    /***************
+     * Flashサポート
+     * ************/
+    private boolean mFlashSupported;
+    public void setFlashSupported(boolean flashSupported) {
+        mFlashSupported = flashSupported;
+    }
+    public boolean getFlashSupported() {
+        return mFlashSupported;
     }
 
     /*****************************************

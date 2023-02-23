@@ -186,93 +186,6 @@ public class MainFragment extends Fragment {
             double baseArea  = ((double)tvw_w)*tvw_h;
             double baseAspect= ((double)tvw_w)/tvw_h;
 
-            /* TextureViewのサイズとアスペクト比に、一番近いCamera解像度のサイズを取得 */
-            /* TODO 削除予定 試しコード ここから */
-            List<Size> aaaaa = Arrays.stream(mViewModel.getSupportedCameraSizes()).sorted(new Comparator<Size>() {
-                @Override
-                public int compare(Size o1, Size o2) {
-                    /* 面積正規化 */
-                    double baseAreaNorm= baseArea / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-                    double o1AreaNorm  = (((double)o1.getWidth())*o1.getHeight()) / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-                    double o2AreaNorm  = (((double)o2.getWidth())*o2.getHeight()) / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-
-                    /* アスペクト比正規化 */
-                    double baseAspectNorm= baseAspect / maxAspect;
-                    double o1AspectNorm  = (((double)o1.getWidth())/o1.getHeight()) / maxAspect;
-                    double o2AspectNorm  = (((double)o2.getWidth())/o2.getHeight()) / maxAspect;
-
-                    /* o1 */
-                    double o1AreaDiff     = o1AreaNorm - baseAreaNorm;        /* 面積差分 */
-                    double o1AspectDiff   = o1AspectNorm - baseAspectNorm;    /* アスペクト比差分 */
-                    double o1MoreLargeDiff= (o1.getWidth()*o1.getHeight()== baseArea) ? 0.2 :
-                                            (o1.getWidth()*o1.getHeight() < baseArea) ? 0.1 : 0;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
-
-                    /* o2 */
-                    double o2AreaDiff   = o2AreaNorm - baseAreaNorm;        /* 面積差分 */
-                    double o2AspectDiff = o2AspectNorm - baseAspectNorm;    /* アスペクト比差分 */
-                    double o2MoreLargeDiff = (o2.getWidth()*o2.getHeight()== baseArea) ? 0.2 :
-                                             (o2.getWidth()*o2.getHeight() < baseArea) ? 0.1 : 0;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
-
-                    /* 特徴を一元化 */
-                    double o1Feature = Math.abs(o1AreaDiff) + Math.abs(o1AspectDiff) + Math.abs(o1MoreLargeDiff);
-                    double o2Feature = Math.abs(o2AreaDiff) + Math.abs(o2AspectDiff) + Math.abs(o2MoreLargeDiff);
-
-//                    String log0 = String.format(Locale.JAPAN, "ret=%2d[%f{%f + %f + %f}, %f{%f + %f + %f}] | ", Double.compare(o2Feature, o1Feature), o1Feature, Math.abs(o1AreaDiff), Math.abs(o1AspectDiff), Math.abs(o1MoreLargeDiff), o2Feature, Math.abs(o2AreaDiff), Math.abs(o2AspectDiff), Math.abs(o2MoreLargeDiff));
-//                    String log1 = String.format(Locale.JAPAN, "(%4d x %4d[%f](%8d)) | ", tvw_w, tvw_h, ((double)tvw_w)/tvw_h, ((long)tvw_w)*tvw_h);
-//                    String log2 = String.format(Locale.JAPAN, "::(%4d x %4d[%f](%8d)) ",   o1.getMeasuredWidth(), o1.getMeasuredHeight(), ((double)o1.getMeasuredWidth())/o1.getMeasuredHeight(), ((long)o1.getMeasuredWidth())*o1.getMeasuredHeight());
-//                    String log3 = String.format(Locale.JAPAN, "(%4d x %4d[%f](%8d)) | ", o2.getMeasuredWidth(), o2.getMeasuredHeight(), ((double)o2.getMeasuredWidth())/o2.getMeasuredHeight(), ((long)o2.getMeasuredWidth())*o2.getMeasuredHeight());
-//                    String log4 = String.format(Locale.JAPAN, "o1-大::%f[%f{%d x %d / %d x %d}-%f{%d x %d / %d x %d}]", Math.abs(o1AreaDiff), o1AreaNorm, o1.getMeasuredWidth(),o1.getMeasuredHeight(),maxPreviewSzie.getMeasuredWidth(),maxPreviewSzie.getMeasuredHeight(), baseAreaNorm, tvw_w, tvw_h, maxPreviewSzie.getMeasuredWidth(),maxPreviewSzie.getMeasuredHeight());
-//                    String log5 = String.format(Locale.JAPAN, "o2-大::%f[%f{%d x %d / %d x %d}-%f{%d x %d / %d x %d}]", Math.abs(o2AreaDiff), o2AreaNorm, o2.getMeasuredWidth(),o2.getMeasuredHeight(),maxPreviewSzie.getMeasuredWidth(),maxPreviewSzie.getMeasuredHeight(), baseAreaNorm, tvw_w, tvw_h, maxPreviewSzie.getMeasuredWidth(),maxPreviewSzie.getMeasuredHeight());
-//                    String log6 = String.format(Locale.JAPAN, "o1-比::%f[%f{(%d / %d) / (%d / %d )} - %f{(%d / %d) / (%d / %d )}]", Math.abs(o1AspectDiff), o1AspectNorm, o1.getMeasuredWidth(),o1.getMeasuredHeight(),maxAspectSize.getMeasuredWidth(),maxAspectSize.getMeasuredHeight(), baseAspectNorm, tvw_w,tvw_h,maxAspectSize.getMeasuredWidth(),maxAspectSize.getMeasuredHeight());
-//                    String log7 = String.format(Locale.JAPAN, "o2-比::%f[%f{(%d / %d) / (%d / %d )} - %f{(%d / %d) / (%d / %d )}]", Math.abs(o2AspectDiff), o2AspectNorm, o2.getMeasuredWidth(),o2.getMeasuredHeight(),maxAspectSize.getMeasuredWidth(),maxAspectSize.getMeasuredHeight(), baseAspectNorm, tvw_w,tvw_h,maxAspectSize.getMeasuredWidth(),maxAspectSize.getMeasuredHeight());
-//                    String log8 = String.format(Locale.JAPAN, "o1-↑::%f", Math.abs(o1MoreLargeDiff));
-//                    String log9 = String.format(Locale.JAPAN, "o2-↑::%f", Math.abs(o2MoreLargeDiff));
-//                    Log.d("aaaaa",  String.format("%s %s %s %s", log0, log1, log2, log3));
-//                    Log.d("aaaaa",  String.format("%s %s %s", log4, log6, log8));
-//                    Log.d("aaaaa",  String.format("%s %s %s", log5, log7, log9));
-//                    Log.d("aaaaa",  "------------------------------------------------");
-                    return Double.compare(o1Feature, o2Feature);
-                }
-            }).collect(Collectors.toList());
-            for(Size aa : aaaaa) {
-//                Log.d("aaaaa",  String.format("aaaaa 並び替えがちゃんと出来ているか?(%d x %d[%f]) --- %d x %d[%f]", tvw_w, tvw_h, ((double)tvw_w)/tvw_h, aa.getMeasuredWidth(), aa.getMeasuredHeight(), ((double)aa.getMeasuredWidth())/aa.getMeasuredHeight()) );
-            }
-            /* TODO 削除予定 試しコード ここまで */
-
-            Size suitableCameraPreviewSize = Arrays.stream(mViewModel.getSupportedCameraSizes()).min((o1, o2) -> {
-                /* 面積正規化 */
-                double baseAreaNorm= baseArea / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-                double o1AreaNorm  = (((double)o1.getWidth())*o1.getHeight()) / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-                double o2AreaNorm  = (((double)o2.getWidth())*o2.getHeight()) / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-
-                /* アスペクト比正規化 */
-                double baseAspectNorm= baseAspect / maxAspect;
-                double o1AspectNorm  = (((double)o1.getWidth())/o1.getHeight()) / maxAspect;
-                double o2AspectNorm  = (((double)o2.getWidth())/o2.getHeight()) / maxAspect;
-
-                /* o1 */
-                double o1AreaDiff     = o1AreaNorm - baseAreaNorm;                          /* 面積差分 */
-                double o1AspectDiff   = o1AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
-                double o1MoreLargeDiff= (o1.getWidth()*o1.getHeight() < baseArea) ? 0.1 : 0;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
-
-                /* o2 */
-                double o2AreaDiff     = o2AreaNorm - baseAreaNorm;                          /* 面積差分 */
-                double o2AspectDiff   = o2AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
-                double o2MoreLargeDiff= (o2.getWidth()*o2.getHeight() < baseArea) ? 0.1 : 0;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
-
-                /* 特徴を一元化 */
-                double o1Feature = Math.abs(o1AreaDiff) + Math.abs(o1AspectDiff) + Math.abs(o1MoreLargeDiff);
-                double o2Feature = Math.abs(o2AreaDiff) + Math.abs(o2AspectDiff) + Math.abs(o2MoreLargeDiff);
-
-                return Double.compare(o1Feature, o2Feature);
-            }).get();
-
-            Log.d("aaaaa",  String.format("aaaaa ちゃんとれたか？(%d x %d[%f])", suitableCameraPreviewSize.getWidth(), suitableCameraPreviewSize.getHeight(), ((double)suitableCameraPreviewSize.getWidth())/suitableCameraPreviewSize.getHeight()) );
-
-            /* TextureViewサイズとプレビューサイズの拡縮を求める */
-            float scale = (suitableCameraPreviewSize.getWidth()/((float)tvw_w)) / (suitableCameraPreviewSize.getHeight()/((float)tvw_h));
-            float scale1 = Math.max((suitableCameraPreviewSize.getWidth()/((float)tvw_w)), (suitableCameraPreviewSize.getHeight()/((float)tvw_h)));
-
             Log.d("aaaaa",  String.format("aaaaa onViewCreated() mTextureView.Size (%d x %d[%f])", mTextureView.getMeasuredWidth(), mTextureView.getMeasuredHeight(), ((double)mTextureView.getMeasuredWidth())/mTextureView.getMeasuredHeight()) );
 
             Matrix matrix = new Matrix();
@@ -346,8 +259,9 @@ public class MainFragment extends Fragment {
         boolean isLandscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         int ScreenWidth = (isLandscape) ? windowMetrics.getBounds().width() : windowMetrics.getBounds().height();
         int ScreenHeight= (isLandscape) ? windowMetrics.getBounds().height(): windowMetrics.getBounds().width();
-        ScreenWidth = 1920;
-        ScreenHeight= 1080;
+//        ScreenWidth = 1920;
+//        ScreenHeight= 1080;
+        Log.d("aaaaa", String.format("aaaaa(264)onResume() ScreenSize(%s, %s)", ScreenWidth, ScreenHeight));
         Size suitableSize = getSuitablePreviewSize(mViewModel.getSupportedCameraSizes(), new Size(ScreenWidth, ScreenHeight));
         Size textureViewSize = (isLandscape) ? new Size(suitableSize.getWidth(),suitableSize.getHeight()) : new Size(suitableSize.getHeight(),suitableSize.getWidth());
 
@@ -409,13 +323,13 @@ public class MainFragment extends Fragment {
             double o1AreaDiff     = o1AreaNorm   - baseAreaNorm;                        /* 面積差分 */
             double o1AspectDiff   = o1AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
             double o1MoreLargeDiff= (o1.getWidth()*o1.getHeight()== baseArea) ? 0.0 :
-                                    (o1.getWidth()*o1.getHeight() < baseArea) ? 0.2 : 1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
+                                    (o1.getWidth()*o1.getHeight() < baseArea) ? 0.2 : 0.1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
 
             /* o2 */
             double o2AreaDiff     = o2AreaNorm   - baseAreaNorm;                        /* 面積差分 */
             double o2AspectDiff   = o2AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
             double o2MoreLargeDiff= (o2.getWidth()*o2.getHeight()== baseArea) ? 0.0 :
-                                    (o2.getWidth()*o2.getHeight() < baseArea) ? 0.2 : 1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
+                                    (o2.getWidth()*o2.getHeight() < baseArea) ? 0.2 : 0.1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
 
             /* 特徴を一元化 */
             double o1Feature = Math.abs(o1AreaDiff) + Math.abs(o1AspectDiff) + Math.abs(o1MoreLargeDiff);
@@ -442,13 +356,13 @@ public class MainFragment extends Fragment {
                 double o1AreaDiff     = o1AreaNorm   - baseAreaNorm;                        /* 面積差分 */
                 double o1AspectDiff   = o1AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
                 double o1MoreLargeDiff= (o1.getWidth()*o1.getHeight()== baseArea) ? 0.0 :
-                        (o1.getWidth()*o1.getHeight() < baseArea) ? 0.2 : 1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
+                        (o1.getWidth()*o1.getHeight() < baseArea) ? 0.2 : 0.1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
 
                 /* o2 */
                 double o2AreaDiff     = o2AreaNorm   - baseAreaNorm;                        /* 面積差分 */
                 double o2AspectDiff   = o2AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
                 double o2MoreLargeDiff= (o2.getWidth()*o2.getHeight()== baseArea) ? 0.0 :
-                        (o2.getWidth()*o2.getHeight() < baseArea) ? 0.2 : 1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
+                        (o2.getWidth()*o2.getHeight() < baseArea) ? 0.2 : 0.1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
 
                 /* 特徴を一元化 */
                 double o1Feature = Math.abs(o1AreaDiff) + Math.abs(o1AspectDiff) + Math.abs(o1MoreLargeDiff);

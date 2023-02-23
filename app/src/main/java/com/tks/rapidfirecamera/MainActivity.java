@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         mViewModel.setSharedPreferences(getSharedPreferences(ConfigFragment.PREF_APPSETTING, Context.MODE_PRIVATE));
 
+        /* 全画面アプリ設定 */
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         getWindow().setStatusBarContrastEnforced(false);
         getWindow().setNavigationBarContrastEnforced(false);
@@ -71,34 +72,12 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Sensor accel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(mSensorEventCallback, accel, SensorManager.SENSOR_DELAY_NORMAL);
-
-        /* TODO 回転しないことを確認したかった。削除予定 */
-        int displayRotation = getWindowManager().getDefaultDisplay().getRotation();
-        if(displayRotation == Surface.ROTATION_0)
-            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_0));
-        else if(displayRotation == Surface.ROTATION_90)
-            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_90));
-        else if(displayRotation == Surface.ROTATION_180)
-            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_180));
-        else if(displayRotation == Surface.ROTATION_270)
-            Log.d("aaaaa", String.format("aaaaa onResume() %d Surface.ROTATION_0", Surface.ROTATION_270));
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(mSensorEventCallback);
-
-        /* TODO 回転しないことを確認したかった。削除予定 */
-        int displayRotation = getWindowManager().getDefaultDisplay().getRotation();
-        if(displayRotation == Surface.ROTATION_0)
-            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_0));
-        else if(displayRotation == Surface.ROTATION_90)
-            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_90));
-        else if(displayRotation == Surface.ROTATION_180)
-            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_180));
-        else if(displayRotation == Surface.ROTATION_270)
-            Log.d("aaaaa", String.format("aaaaa onPause() %d Surface.ROTATION_0", Surface.ROTATION_270));
     }
 
     @Override
@@ -123,7 +102,6 @@ public class MainActivity extends AppCompatActivity {
     private int mRotation             = -1;
     private int mNextRotation         = -1;
     private int mRotationTransCounter = 0;
-
     final private SensorEventCallback mSensorEventCallback = new SensorEventCallback() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -188,6 +166,7 @@ public class MainActivity extends AppCompatActivity {
                     mViewModel.setRotation(getRotDegreesFromTo.invoke(new Pair<>(mRotation, mNextRotation)));
                     mRotation = mNextRotation;
                 }
+                return;
             }
         }
     };

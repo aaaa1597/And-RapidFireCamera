@@ -12,9 +12,6 @@ import androidx.lifecycle.ViewModel;
 import java.io.File;
 import java.util.Arrays;
 
-import kotlin.NotImplementedError;
-import kotlin.jvm.functions.Function2;
-
 public class MainViewModel extends ViewModel {
     /*******************
      * SharedPreferences
@@ -79,12 +76,12 @@ public class MainViewModel extends ViewModel {
     /*****************************************
      * Cameraデバイスがサポートする撮像サイズのリスト
      * **************************************/
-    private Size[] mSupportedResolutionSizes;
-    public Size[] getSupportedResolutionSizes() {
-        return mSupportedResolutionSizes;
+    private Size[] mSupportedCameraSizes;
+    public Size[] getSupportedCameraSizes() {
+        return mSupportedCameraSizes;
     }
-    public void setSupportedResolutionSizes(Size[] supportedResolutionSizes) {
-        mSupportedResolutionSizes = supportedResolutionSizes;
+    public void setSupportedCameraSizes(Size[] supportedResolutionSizes) {
+        mSupportedCameraSizes = supportedResolutionSizes;
     }
 
     /***************
@@ -115,10 +112,10 @@ public class MainViewModel extends ViewModel {
     }
 
     private Size getSuitablePictureSize(int w, int h) {
-        int idx = Arrays.asList(mSupportedResolutionSizes).indexOf(new Size(w,h));
+        int idx = Arrays.asList(mSupportedCameraSizes).indexOf(new Size(w,h));
         /* 見つかった場合は、指定Sizeを返却する */
         if(idx != -1)
-            return mSupportedResolutionSizes[idx];
+            return mSupportedCameraSizes[idx];
 
         /* 見つからなかった場合は、指定Sizeと同一アスペクト比の直近の大きめサイズを返却 */
         Size retSameAspectSize = null;
@@ -127,7 +124,7 @@ public class MainViewModel extends ViewModel {
         int gcd = getGreatestCommonDivisor(w, h);
         /* ベースのアスペクト比算出 */
         Size baseAspect = new Size(w/gcd, h/gcd);
-        for(Size lsize : mSupportedResolutionSizes) {
+        for(Size lsize : mSupportedCameraSizes) {
             int lgcd = getGreatestCommonDivisor(lsize.getWidth(), lsize.getHeight());
             Size laspect = new Size(lsize.getWidth()/lgcd, lsize.getHeight()/lgcd);
             if( !baseAspect.equals(laspect)) {

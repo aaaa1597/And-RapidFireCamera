@@ -125,10 +125,10 @@ public class ConfigFragment extends Fragment {
                     if( SelectResolutionDialog.mIsShowing) return "";
 
                     /* 撮影解像度のindexを、Cameraデバイスの解像度リストから求める */
-                    List<Size> resolutions = Arrays.asList(mViewModel.getSupportedResolutionSizes());
+                    List<Size> resolutions = Arrays.asList(mViewModel.getSupportedCameraSizes());
                     int index = resolutions.indexOf(mViewModel.getCurrentResolutionSize());
                     /* 選択ダイアログ表示 */
-                    SelectResolutionDialog.newInstance(mViewModel.getSupportedResolutionSizes(), index).show(getChildFragmentManager(), null);
+                    SelectResolutionDialog.newInstance(mViewModel.getSupportedCameraSizes(), index).show(getChildFragmentManager(), null);
                 }
                 /* 保存場所押下 */
                 else if(itemname.equals(context.getResources().getString(R.string.str_filelocation))) {

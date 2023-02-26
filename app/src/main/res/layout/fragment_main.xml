@@ -7,11 +7,10 @@
     android:background="#8888fffe"
     tools:context=".MainFragment">
 
-    <com.tks.rapidfirecamera.AutoFitTextureView
+    <TextureView
         android:id="@+id/tvw_preview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        tools:ignore="RelativeOverlap" />
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
     <androidx.appcompat.widget.LinearLayoutCompat
         android:id="@+id/ll_config"

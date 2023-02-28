@@ -40,15 +40,15 @@ public class MainViewModel extends ViewModel {
             if(mSavePath.equals("")) {
                 /* 外部保存先を取得する(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)配下しか対象にしない) */
                 mSavePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath() + RAPIDFIRE;
-                /* 外部保存先をmkdirs */
-                File defalutsavefile = new File(mSavePath);
-                // noinspection ResultOfMethodCallIgnored <- mkdirs()の戻り値無視傾向対応
-                defalutsavefile.mkdirs();
                 /* SharedPreferencesに保存 */
                 SharedPreferences.Editor editor = mSharedPref.edit();
-                editor.putString(ConfigFragment.PREF_KEY_SAVEPATH, defalutsavefile.getAbsolutePath());
+                editor.putString(ConfigFragment.PREF_KEY_SAVEPATH, mSavePath);
                 editor.apply();
             }
+            /* 外部保存先をmkdirs */
+            File defalutsavefile = new File(mSavePath);
+            // noinspection ResultOfMethodCallIgnored <- mkdirs()の戻り値無視傾向対応
+            defalutsavefile.mkdirs();
         }
         return mSavePath;
     }

@@ -1,15 +1,22 @@
 package com.tks.rapidfirecamera;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Pair;
 import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.Surface;
 
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Arrays;
 
 public class MainViewModel extends ViewModel {
@@ -24,15 +31,15 @@ public class MainViewModel extends ViewModel {
     /***************
      * 画像保存場所
      * ************/
+    private static String RAPIDFIRE = "/Rapidfie";
     private String mSavePath = "";
-    private Uri mSaveUri;
     public String getSavePath() {
         if(mSavePath.equals("")) {
             /* 保存場所 読込み */
             mSavePath = mSharedPref.getString(ConfigFragment.PREF_KEY_SAVEPATH, "");
             if(mSavePath.equals("")) {
                 /* 外部保存先を取得する(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)配下しか対象にしない) */
-                mSavePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath() + "/Rapidfie";
+                mSavePath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).getAbsolutePath() + RAPIDFIRE;
                 /* 外部保存先をmkdirs */
                 File defalutsavefile = new File(mSavePath);
                 // noinspection ResultOfMethodCallIgnored <- mkdirs()の戻り値無視傾向対応
@@ -43,14 +50,8 @@ public class MainViewModel extends ViewModel {
                 editor.apply();
             }
         }
-        mSaveUri = Uri.fromFile(new File(mSavePath));
         return mSavePath;
     }
-    public Uri getSaveUri() {
-        if(mSaveUri == null) getSavePath();
-        return mSaveUri;
-    }
-
     /***************
      * カメラId
      * ************/
@@ -87,10 +88,10 @@ public class MainViewModel extends ViewModel {
     /***************
      * 撮像サイズ
      * ************/
-    private final MutableLiveData<Size> mCurrentResolutionSize = new MutableLiveData<>();
-    public Size getCurrentResolutionSize() {
-        Size cursize = mCurrentResolutionSize.getValue();
-        if(cursize == null || cursize.getWidth() == -1 || cursize.getHeight() == -1) {
+    private final MutableLiveData<Size> mTakePictureSize = new MutableLiveData<>();
+    public Size getTakePictureSize() {
+        Size retsize = mTakePictureSize.getValue();
+        if(retsize == null || retsize.getWidth() == -1 || retsize.getHeight() == -1) {
             /* 撮像解像度の読込み */
             int w = mSharedPref.getInt(ConfigFragment.PREF_KEY_RESOLUTION_W, -1);
             int h = mSharedPref.getInt(ConfigFragment.PREF_KEY_RESOLUTION_H, -1);
@@ -105,10 +106,10 @@ public class MainViewModel extends ViewModel {
                 w = size.getWidth();
                 h = size.getHeight();
             }
-            cursize = new Size(w, h);
-            setCurrentResolutionSize(cursize);
+            retsize = new Size(w, h);
+            setTakePictureSize(retsize);
         }
-        return cursize;
+        return retsize;
     }
 
     private Size getSuitablePictureSize(int w, int h) {
@@ -153,22 +154,52 @@ public class MainViewModel extends ViewModel {
         return (retSameAspectSize!=null) ? retSameAspectSize : retDiffAspectSize;
     }
 
-    public void setCurrentResolutionSize(Size resolutionSize) {
-        mCurrentResolutionSize.postValue(resolutionSize);
+    public void setTakePictureSize(Size resolutionSize) {
+        mTakePictureSize.postValue(resolutionSize);
     }
-    public MutableLiveData<Size> setOnChageCurrentResolutionSizeListner() {
-        return mCurrentResolutionSize;
+
+    public MutableLiveData<Size> setOnChageTakePictureSizeListner() {
+        return mTakePictureSize;
     }
 
     /***************
      * 回転発生
      * ************/
-    private final MutableLiveData<Pair<Integer, Integer>> mRotation = new MutableLiveData<>();
-    public void setRotation(Pair<Integer, Integer> rotfromto) {
-        mRotation.postValue(rotfromto);
+    private final MutableLiveData<Pair<Integer, Integer>> mTransRotation = new MutableLiveData<>();
+    public void setTransRotation(Pair<Integer, Integer> rotfromto) {
+        mTransRotation.postValue(rotfromto);
     }
     public MutableLiveData<Pair<Integer, Integer>> setOnChageRotationListner() {
-        return mRotation;
+        return mTransRotation;
+    }
+
+    /***************
+     * スマホ向き
+     * ************/
+    public static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 90);
+        ORIENTATIONS.append(Surface.ROTATION_90, 0);
+        ORIENTATIONS.append(Surface.ROTATION_180, 270);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
+    }
+    private int mOrientation = -1;
+    public void setOrientation(int orientation) {
+        mOrientation = orientation;
+    }
+    public int getOrientation() {
+        return mOrientation;
+    }
+
+    /***********************
+     * Cameraデバイスが持つ向き
+     * ********************/
+    int mSensorOrientation = 0;
+    public void setSensorOrientation(int sensorOrientation) {
+        mSensorOrientation = sensorOrientation;
+    }
+    public int getSensorOrientation() {
+        return mSensorOrientation;
     }
 
     /***************

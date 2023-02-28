@@ -64,12 +64,12 @@ public class ConfigFragment extends Fragment {
 
         /* 現在値設定 */
         Resources res = activity.getResources();
-        Size ressize  = mViewModel.getCurrentResolutionSize();
+        Size ressize  = mViewModel.getTakePictureSize();
         mConfigItems.add(new ConfigItem(res.getString(R.string.str_resolution)  , String.format(Locale.JAPAN, "%d x %d", ressize.getWidth(), ressize.getHeight())));
         mConfigItems.add(new ConfigItem(res.getString(R.string.str_filelocation), mViewModel.getSavePath()));
 
         /* 撮像解像度を変更した時の動作 */
-        mViewModel.setOnChageCurrentResolutionSizeListner().observe(getViewLifecycleOwner(), size -> {
+        mViewModel.setOnChageTakePictureSizeListner().observe(getViewLifecycleOwner(), size -> {
             for(ConfigItem item : mConfigItems) {
                 /* 撮像解像度の文字列を設定(値は設定済) */
                 if(item.mItemName.equals(res.getString(R.string.str_resolution))) {
@@ -126,7 +126,7 @@ public class ConfigFragment extends Fragment {
 
                     /* 撮影解像度のindexを、Cameraデバイスの解像度リストから求める */
                     List<Size> resolutions = Arrays.asList(mViewModel.getSupportedCameraSizes());
-                    int index = resolutions.indexOf(mViewModel.getCurrentResolutionSize());
+                    int index = resolutions.indexOf(mViewModel.getTakePictureSize());
                     /* 選択ダイアログ表示 */
                     SelectResolutionDialog.newInstance(mViewModel.getSupportedCameraSizes(), index).show(getChildFragmentManager(), null);
                 }
@@ -223,7 +223,7 @@ public class ConfigFragment extends Fragment {
                     @Override
                     public void onClick(View v) {
                         /* 撮像解像度の値を設定(->文字列の更新は、非同期でonChageCurrentResolutionSize().observe()の処理が動くのでそこで実行) */
-                        mViewModel.setCurrentResolutionSize(new Size(resolution.getWidth(), resolution.getHeight()));
+                        mViewModel.setTakePictureSize(new Size(resolution.getWidth(), resolution.getHeight()));
 
                         /* SharedPreferenceにも撮像解像度の値を設定 */
                         SharedPreferences sharedPref = v.getContext().getSharedPreferences(ConfigFragment.PREF_APPSETTING, Context.MODE_PRIVATE);

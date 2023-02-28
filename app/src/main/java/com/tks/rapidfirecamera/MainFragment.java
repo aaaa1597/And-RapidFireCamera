@@ -14,6 +14,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.ImageFormat;
 import android.graphics.Insets;
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
@@ -22,6 +23,7 @@ import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CameraMetadata;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
@@ -29,6 +31,7 @@ import android.hardware.camera2.params.OutputConfiguration;
 import android.hardware.camera2.params.SessionConfiguration;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.Image;
+import android.media.ImageReader;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -40,16 +43,13 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.MediaStore;
 import android.util.Log;
-import android.util.Pair;
 import android.util.Size;
 import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
-import android.view.WindowMetrics;
 import android.view.animation.RotateAnimation;
 
 import java.io.IOException;
@@ -57,30 +57,21 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class MainFragment extends Fragment {
-    private FragmentActivity mAtivity;
+    private FragmentActivity mActivity;
     private MainViewModel mViewModel;
-//    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
-//
-//    static {
-//        ORIENTATIONS.append(Surface.ROTATION_0, 90);
-//        ORIENTATIONS.append(Surface.ROTATION_90, 0);
-//        ORIENTATIONS.append(Surface.ROTATION_180, 270);
-//        ORIENTATIONS.append(Surface.ROTATION_270, 180);
-//    }
-
     private final Semaphore mCameraOpenCloseSemaphore = new Semaphore(1);
-
+    static ContentResolver mResolver;
+    static final SimpleDateFormat mDf = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS", Locale.US);
+    private ImageReader mImageReader4TakePicture;
     private CameraCaptureSession mCaptureSession;
+    private CaptureRequest mRequestforPreview;
 
     /* 絞りを開ける=f値小, 光がたくさん, 被写界深度-浅, 背景がボケる。被写体を浮き立たせる効果がある。シャッター速度が速くなるため手ブレしにくくなる。 */
     /* 絞りを絞る　=f値大, 光が少し　　, 被写界深度-深, 画面全部にピントが合う。 */
@@ -102,13 +93,15 @@ public class MainFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         /* メンバ初期化 */
-        mAtivity = getActivity();
-        if(mAtivity == null) throw new RuntimeException("Error occurred!! illigal state in this app. activity is null!!");
+        mActivity    = getActivity();
+        if(mActivity == null) throw new RuntimeException("Error occurred!! illigal state in this app. activity is null!!");
         mTextureView = view.findViewById(R.id.tvw_preview);
-        mViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        mViewModel   = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        mResolver    = mActivity.getApplicationContext().getContentResolver();
+        mDf.setTimeZone(TimeZone.getDefault());
 
         /* カメラデバイスIDの確定と、そのCameraがサポートしている解像度リストを取得 */
-        CameraManager manager = (CameraManager)mAtivity.getSystemService(Context.CAMERA_SERVICE);
+        CameraManager manager = (CameraManager)mActivity.getSystemService(Context.CAMERA_SERVICE);
         try {
             for(String cameraId : manager.getCameraIdList()) {
                 CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
@@ -122,11 +115,16 @@ public class MainFragment extends Fragment {
                 if(map == null)
                     continue;
 
+                /* ブラッシュサポート有無 */
                 Boolean flashavailable = characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE);
+
+                /* Cameraデバイスの回転状態 */
+                int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
 
                 mViewModel.setCameraId(cameraId);
                 mViewModel.setSupportedCameraSizes(map.getOutputSizes(SurfaceTexture.class));
                 mViewModel.setFlashSupported((flashavailable == null) ? false : flashavailable);
+                mViewModel.setSensorOrientation(sensorOrientation);
                 break;
             }
         }
@@ -139,26 +137,34 @@ public class MainFragment extends Fragment {
         mViewModel.setOnChageRotationListner().observe(getViewLifecycleOwner(), rotfromto -> {
             /* Config系ボタン */
             RotateAnimation rotanim_s = new RotateAnimation(rotfromto.first, rotfromto.second, view.findViewById(R.id.btn_setting).getPivotX(), view.findViewById(R.id.btn_setting).getPivotY());
-            rotanim_s.setDuration(500);
+            rotanim_s.setDuration(250);
             rotanim_s.setFillAfter(true);
             view.findViewById(R.id.btn_setting).startAnimation(rotanim_s);
             view.findViewById(R.id.btn_settingaaa).startAnimation(rotanim_s);
             /* シャッターボタン */
             RotateAnimation rotanim_l = new RotateAnimation(rotfromto.first, rotfromto.second, view.findViewById(R.id.btn_shutter).getPivotX(), view.findViewById(R.id.btn_shutter).getPivotY());
-            rotanim_l.setDuration(500);
+            rotanim_l.setDuration(250);
             rotanim_l.setFillAfter(true);
             view.findViewById(R.id.btn_shutter).startAnimation(rotanim_l);
         });
 
         /* 設定ボタンの再配置 */
-        Insets insets = mAtivity.getWindowManager().getCurrentWindowMetrics().getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+        Insets insets = mActivity.getWindowManager().getCurrentWindowMetrics().getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
         view.findViewById(R.id.ll_config).setTranslationY(insets.top + 1);
 
         /* 設定ボタン押下イベント生成 */
         view.findViewById(R.id.btn_setting).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                mAtivity.getSupportFragmentManager().beginTransaction().replace(R.id.container, ConfigFragment.newInstance()).commit();
+                mActivity.getSupportFragmentManager().beginTransaction().replace(R.id.container, ConfigFragment.newInstance()).commit();
+            }
+        });
+
+        /* Shutterボタン押下イベント生成 */
+        view.findViewById(R.id.btn_shutter).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                takePicture();
             }
         });
     }
@@ -194,38 +200,39 @@ public class MainFragment extends Fragment {
                 }
                 @Override public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {}
                 @Override public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {}
-                @Override public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
-                    return false;
-                }
+                @Override public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) { return false; }
             });
         }
     }
 
     /* onResume() -> [onSurfaceTextureAvailable()] -> openCamera() -> CameraManager::openCamera() -> onOpened() */
     /*                                                ↑ ココ                                                   */
-//    private ImageReader mImageReader;
-    static final SimpleDateFormat mSdf = new SimpleDateFormat("yyyyMMdd_HHmmssSSS", Locale.US);
-
     private void openCamera(String cameraid) {
-        /* 撮像ファイルの設定 */
-        mSdf.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        /* 撮像サイズの設定 */
-//        mImageReader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 2);
-//        mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-//            @Override
-//            public void onImageAvailable(ImageReader reader) {
-//                mBackgroundHandler.post(new ImageSaver(reader.acquireNextImage(), mAtivity.getContentResolver(), mViewModel.getSaveUri()));
-//            }
-//        }, mBackgroundHandler);
+        /* 撮像(サイズと保存先)設定 */
+        Size pictureSize = mViewModel.getTakePictureSize();
+        mImageReader4TakePicture = ImageReader.newInstance(pictureSize.getWidth(), pictureSize.getHeight(), ImageFormat.JPEG, /*maxImages*/10);
+        mImageReader4TakePicture.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
+            @Override
+            public void onImageAvailable(ImageReader reader) {
+                /* ImageReaderからバイナリデータ取得 */
+                Image image = reader.acquireNextImage();
+                ByteBuffer buffer = image.getPlanes()[0].getBuffer();
+                byte[] bytes = new byte[buffer.remaining()];
+                buffer.get(bytes);
+                image.close();
+                /* 画像保存処理を非同期で実行 */
+                mBackgroundHandler.post(new ImageSaver(mViewModel.getSavePath(), bytes));
+            }
+        }, mBackgroundHandler);
 
-        /* Camera Open */
-        CameraManager manager = (CameraManager)mAtivity.getSystemService(Context.CAMERA_SERVICE);
+        /* Open Camera */
+        CameraManager manager = (CameraManager)mActivity.getSystemService(Context.CAMERA_SERVICE);
         try {
             if( !mCameraOpenCloseSemaphore.tryAcquire(2500, TimeUnit.MILLISECONDS))
                 throw new RuntimeException("Time out waiting to lock camera opening.");
 
             /* 権限チェック -> 権限なし時はアプリ終了!!(CameraManager::openCamera()をコールする前には必ず必要) */
-            if(ActivityCompat.checkSelfPermission(mAtivity, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            if(ActivityCompat.checkSelfPermission(mActivity, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 new Throwable().printStackTrace();
                 ErrorDialog.newInstance(getString(R.string.request_permission)).show(getChildFragmentManager(), "Error!!");
             }
@@ -265,67 +272,12 @@ public class MainFragment extends Fragment {
         }
     };
 
-    private static class ImageSaver implements Runnable {
-        private final Image mImage;
-        private final ContentResolver mCr;
-        private final Uri mSaveUri;
-        ImageSaver(Image image, ContentResolver cr, Uri saveUri) {
-            mImage  = image;
-            mCr     = cr;
-            mSaveUri= saveUri;
-        }
-
-        @Override
-        public void run() {
-            /* バイナリデータ取得 */
-            ByteBuffer buffer = mImage.getPlanes()[0].getBuffer();
-            byte[] bytes = new byte[buffer.remaining()];
-            buffer.get(bytes);
-
-            ContentValues contentvalues = new ContentValues();
-            /* ファイル名 */
-            contentvalues.put(MediaStore.Images.Media.DISPLAY_NAME, mSdf.format(new Date()));
-            /* マイムの設定 */
-            contentvalues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-            /* 書込み時にメディア ファイルに排他的にアクセスする */
-            contentvalues.put(MediaStore.Images.Media.IS_PENDING, 1);
-
-            /* 保存領域確保 */
-            Uri dstUri = mCr.insert(mSaveUri, contentvalues);
-
-            /* 保存 */
-            OutputStream outstream = null;
-            try {
-                outstream = mCr.openOutputStream(dstUri);
-                outstream.write(bytes);
-            }
-            catch(IOException e) {
-                e.printStackTrace();
-            }
-            finally {
-                mImage.close();
-                contentvalues.clear();
-                /*　排他的にアクセスの解除 */
-                contentvalues.put(MediaStore.Images.Media.IS_PENDING, 0);
-                mCr.update(dstUri, contentvalues, null, null);
-                try {
-                    if(outstream != null)
-                        outstream.close();
-                }
-                catch(IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-    }
-
     /* CameraDevice.StateCallback::onOpened() -> createCameraPreviewSession() -> StateCallback::onConfigured() -> CaptureCallback::onCaptureProgressed() */
     /*                                            ↑ココ                                                                                                   */
     private CaptureRequest.Builder mPreviewRequestBuilder;
-    private CaptureRequest mPreviewRequestforStartCameraPreview;
     private void createCameraPreviewSession() {
-        /*******************************
-         TextureViewに歪み補正行列設定 */
+        /***********************************
+         * TextureViewに歪み補正行列を設定 */
         boolean isLandscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         Size textureViewSize = (isLandscape) ? new Size(mTextureView.getMeasuredWidth(), mTextureView.getMeasuredHeight()) : new Size(mTextureView.getMeasuredHeight(), mTextureView.getMeasuredWidth());
         /* 画面サイズとカメラのSupportedサイズsから最適Previewサイズを求める */
@@ -346,17 +298,17 @@ public class MainFragment extends Fragment {
         texture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
 
         /* SurfaceTexture -> Surface */
-        Surface surface = new Surface(texture);
+        Surface surfaceFromTextureView = new Surface(texture);
 
         /* We set up a CaptureRequest.Builder with the output Surface. */
         try {
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            mPreviewRequestBuilder.addTarget(surface);
+            mPreviewRequestBuilder.addTarget(surfaceFromTextureView);
 
             /* 先にパラメータ生成 */
             SessionConfiguration sessionConfiguration = new SessionConfiguration(
                                             SessionConfiguration.SESSION_REGULAR,
-                                            Arrays.asList(new OutputConfiguration(surface)/*, new OutputConfiguration(mImageReader.getSurface())*/),
+                                            Arrays.asList(new OutputConfiguration(surfaceFromTextureView), new OutputConfiguration(mImageReader4TakePicture.getSurface())),
                                             Runnable::run,
                                             mCaptureSessionStateCallback);
 
@@ -369,10 +321,10 @@ public class MainFragment extends Fragment {
         }
     }
 
-    /**********************************************************************
+    /*********************************************************************************
      * 最適Previewサイズ取得
      * 要は、baseSizeのサイズとアスペクト比に近い、Cameraサポート済サイズを取得している。
-     **********************************************************************/
+     **********************************************************************************/
     private Size getSuitablePreviewSize(Size[] supportedCameraSizes, Size baseSize) {
         /* baseサイズを求める */
         double baseArea  = ((double)baseSize.getWidth())*baseSize.getHeight();
@@ -413,57 +365,6 @@ public class MainFragment extends Fragment {
             return Double.compare(o1Feature, o2Feature);
         }).get();
 
-        /* TODO 削除予定 試しコード ここから */
-//        List<Size> aaaaa = Arrays.stream(mViewModel.getSupportedCameraSizes()).sorted(new Comparator<Size>() {
-//            @Override
-//            public int compare(Size o1, Size o2) {
-//                /* 面積正規化 */
-//                double baseAreaNorm= baseArea / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-//                double o1AreaNorm  = (((double)o1.getWidth())*o1.getHeight()) / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-//                double o2AreaNorm  = (((double)o2.getWidth())*o2.getHeight()) / (((double)maxPreviewSzie.getWidth())*maxPreviewSzie.getHeight());
-//
-//                /* アスペクト比正規化 */
-//                double baseAspectNorm= baseAspect / maxAspect;
-//                double o1AspectNorm  = (((double)o1.getWidth())/o1.getHeight()) / maxAspect;
-//                double o2AspectNorm  = (((double)o2.getWidth())/o2.getHeight()) / maxAspect;
-//
-//                /* o1 */
-//                double o1AreaDiff     = o1AreaNorm   - baseAreaNorm;                        /* 面積差分 */
-//                double o1AspectDiff   = o1AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
-//                double o1MoreLargeDiff= (o1.getWidth()*o1.getHeight()== baseArea) ? 0.0 :
-//                        (o1.getWidth()*o1.getHeight() < baseArea) ? 0.2 : 0.1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
-//
-//                /* o2 */
-//                double o2AreaDiff     = o2AreaNorm   - baseAreaNorm;                        /* 面積差分 */
-//                double o2AspectDiff   = o2AspectNorm - baseAspectNorm;                      /* アスペクト比差分 */
-//                double o2MoreLargeDiff= (o2.getWidth()*o2.getHeight()== baseArea) ? 0.0 :
-//                        (o2.getWidth()*o2.getHeight() < baseArea) ? 0.2 : 0.1;/* 基準サイズより大きい方を優位にする(小さい方に加算) */
-//
-//                /* 特徴を一元化 */
-//                double o1Feature = Math.abs(o1AreaDiff) + Math.abs(o1AspectDiff) + Math.abs(o1MoreLargeDiff);
-//                double o2Feature = Math.abs(o2AreaDiff) + Math.abs(o2AspectDiff) + Math.abs(o2MoreLargeDiff);
-//
-////                String log0 = String.format(Locale.JAPAN, "ret=%2d[%f{%f + %f + %f}, %f{%f + %f + %f}] | ", Double.compare(o2Feature, o1Feature), o1Feature, Math.abs(o1AreaDiff), Math.abs(o1AspectDiff), Math.abs(o1MoreLargeDiff), o2Feature, Math.abs(o2AreaDiff), Math.abs(o2AspectDiff), Math.abs(o2MoreLargeDiff));
-////                String log1 = String.format(Locale.JAPAN, "(%4d x %4d[%f](%8d)) | ", baseSize.getWidth(), baseSize.getHeight(), ((double)baseSize.getWidth())/baseSize.getHeight(), ((long)baseSize.getWidth())*baseSize.getHeight());
-////                String log2 = String.format(Locale.JAPAN, "::(%4d x %4d[%f](%8d)) ",   o1.getWidth(), o1.getHeight(), ((double)o1.getWidth())/o1.getHeight(), ((long)o1.getWidth())*o1.getHeight());
-////                String log3 = String.format(Locale.JAPAN, "(%4d x %4d[%f](%8d)) | ", o2.getWidth(), o2.getHeight(), ((double)o2.getWidth())/o2.getHeight(), ((long)o2.getWidth())*o2.getHeight());
-////                String log4 = String.format(Locale.JAPAN, "o1-大::%f[%f{%d x %d / %d x %d}-%f{%d x %d / %d x %d}]", Math.abs(o1AreaDiff), o1AreaNorm, o1.getWidth(),o1.getHeight(),maxPreviewSzie.getWidth(),maxPreviewSzie.getHeight(), baseAreaNorm, baseSize.getWidth(), baseSize.getHeight(), maxPreviewSzie.getWidth(),maxPreviewSzie.getHeight());
-////                String log5 = String.format(Locale.JAPAN, "o2-大::%f[%f{%d x %d / %d x %d}-%f{%d x %d / %d x %d}]", Math.abs(o2AreaDiff), o2AreaNorm, o2.getWidth(),o2.getHeight(),maxPreviewSzie.getWidth(),maxPreviewSzie.getHeight(), baseAreaNorm, baseSize.getWidth(), baseSize.getHeight(), maxPreviewSzie.getWidth(),maxPreviewSzie.getHeight());
-////                String log6 = String.format(Locale.JAPAN, "o1-比::%f[%f{(%d / %d) / (%d / %d )} - %f{(%d / %d) / (%d / %d )}]", Math.abs(o1AspectDiff), o1AspectNorm, o1.getWidth(),o1.getHeight(),maxAspectSize.getWidth(),maxAspectSize.getHeight(), baseAspectNorm, baseSize.getWidth(),baseSize.getHeight(),maxAspectSize.getWidth(),maxAspectSize.getHeight());
-////                String log7 = String.format(Locale.JAPAN, "o2-比::%f[%f{(%d / %d) / (%d / %d )} - %f{(%d / %d) / (%d / %d )}]", Math.abs(o2AspectDiff), o2AspectNorm, o2.getWidth(),o2.getHeight(),maxAspectSize.getWidth(),maxAspectSize.getHeight(), baseAspectNorm, baseSize.getWidth(),baseSize.getHeight(),maxAspectSize.getWidth(),maxAspectSize.getHeight());
-////                String log8 = String.format(Locale.JAPAN, "o1-↑::%f", Math.abs(o1MoreLargeDiff));
-////                String log9 = String.format(Locale.JAPAN, "o2-↑::%f", Math.abs(o2MoreLargeDiff));
-////                Log.d("aaaaa",  String.format("%s %s %s %s", log0, log1, log2, log3));
-////                Log.d("aaaaa",  String.format("%s %s %s", log4, log6, log8));
-////                Log.d("aaaaa",  String.format("%s %s %s", log5, log7, log9));
-////                Log.d("aaaaa",  "------------------------------------------------");
-//                return Double.compare(o1Feature, o2Feature);
-//            }
-//        }).collect(Collectors.toList());
-//        for(Size aa : aaaaa)
-//            Log.d("aaaaa",  String.format("aaaaa 並び替えがちゃんと出来ているか?(%d x %d[%f]) --- %d x %d[%f]", baseSize.getWidth(), baseSize.getHeight(), ((double)baseSize.getWidth())/baseSize.getHeight(), aa.getWidth(), aa.getHeight(), ((double)aa.getWidth())/aa.getHeight()) );
-        /* TODO 削除予定 試しコード ここまで */
-
         Log.d("aaaaa",  String.format("aaaaa ちゃんとれたか？233 (%d x %d[%f])", suitableCameraPreviewSize.getWidth(), suitableCameraPreviewSize.getHeight(), ((double)suitableCameraPreviewSize.getWidth())/suitableCameraPreviewSize.getHeight()) );
         return suitableCameraPreviewSize;
     }
@@ -486,8 +387,8 @@ public class MainFragment extends Fragment {
                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
 
                 /* Finally, we start displaying the camera preview. */
-                mPreviewRequestforStartCameraPreview = mPreviewRequestBuilder.build();
-                mCaptureSession.setRepeatingRequest(mPreviewRequestforStartCameraPreview, mCaptureCallback, mBackgroundHandler);
+                mRequestforPreview = mPreviewRequestBuilder.build();
+                mCaptureSession.setRepeatingRequest(mRequestforPreview, mCaptureCallback, mBackgroundHandler);
             }
             catch (CameraAccessException e) {
                 /* 異常が発生したら、例外吐いて終了 */
@@ -498,61 +399,15 @@ public class MainFragment extends Fragment {
         @Override public void onConfigureFailed(@NonNull CameraCaptureSession session) { /* 異常が発生したら、例外吐いて終了 */ throw new RuntimeException(session.toString()); }
     };
 
-    /***************************************************************************************************************************************************
-     * Previewキャプチャ中シーケンス
-     * CaptureCallback::onCaptureProgressed()
-     **************************************************************************************************************************************************/
+    /* CameraDevice.StateCallback::onOpened() -> createCameraPreviewSession() -> StateCallback::onConfigured() -> CaptureCallback::onCaptureProgressed() */
+    /*                                                                                                            ↑ココ                                  */
     private int mState = STATE_PREVIEW;
     private static final int STATE_PREVIEW                = 0;
     private static final int STATE_WAITING_LOCK           = 1;
     private static final int STATE_WAITING_PRECAPTURE     = 2;
     private static final int STATE_WAITING_NON_PRECAPTURE = 3;
     private static final int STATE_PICTURE_TAKEN          = 4;
-    private CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
-        private void process(CaptureResult result) {
-            switch (mState) {
-                // We have nothing to do when the camera preview is working normally.
-                case STATE_PREVIEW: {
-                    break;
-                }
-//                case STATE_WAITING_LOCK: {
-//                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-//                    if (afState == null) {
-//                        captureStillPicture();
-//                    }
-//                    // CONTROL_AE_STATE can be null on some devices
-//                    else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState || CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
-//                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-//                        if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-//                            mState = STATE_PICTURE_TAKEN;
-//                            captureStillPicture();
-//                        }
-//                        else {
-//                            runPrecaptureSequence();
-//                        }
-//                    }
-//                    break;
-//                }
-//                // CONTROL_AE_STATE can be null on some devices
-//                case STATE_WAITING_PRECAPTURE: {
-//                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-//                    if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE || aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
-//                        mState = STATE_WAITING_NON_PRECAPTURE;
-//                    }
-//                    break;
-//                }
-//                // CONTROL_AE_STATE can be null on some devices
-//                case STATE_WAITING_NON_PRECAPTURE: {
-//                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
-//                    if (aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-//                        mState = STATE_PICTURE_TAKEN;
-//                        captureStillPicture();
-//                    }
-//                    break;
-//                }
-            }
-        }
-
+    private final CameraCaptureSession.CaptureCallback mCaptureCallback = new CameraCaptureSession.CaptureCallback() {
         @Override
         public void onCaptureProgressed(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull CaptureResult partialResult) {
             process(partialResult);
@@ -562,14 +417,158 @@ public class MainFragment extends Fragment {
         public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
             process(result);
         }
+
+        private void process(CaptureResult result) {
+            switch (mState) {
+                case STATE_PREVIEW: /* 純粋プレビュー中 何もする必要なし */
+                    break;
+                case STATE_WAITING_LOCK: {
+                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                    /* オートフォーカス未設定なので即撮る */
+                    if(afState == null) {
+                        captureStillPicture();
+                    }
+                    /* オートフォーカスすでに完了(正常か失敗かわ問わない) */
+                    else if (afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED || afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
+                        Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                        /* かつ、AEもいい感じに完了してる、もしくは、null(一部のデバイスではnullになるらしい)なら、準備OK.撮る */
+                        if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                            mState = STATE_PICTURE_TAKEN;
+                            captureStillPicture();
+                        }
+                        /* AEまだ、だからAE頑張る。 */
+                        else {
+                            runPrecaptureSequence();
+                        }
+                    }
+                    break;
+                }
+                case STATE_WAITING_PRECAPTURE: {
+                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                    /* AEがいい感じにもうちょっとで完了、もしくは、null(一部のデバイスではnullになるらしい)なら、準備OK. 次のonCaptureProgressed()で撮る */
+                    if(aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_PRECAPTURE || aeState == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED) {
+                        mState = STATE_WAITING_NON_PRECAPTURE;
+                    }
+                    break;
+                }
+                // CONTROL_AE_STATE can be null on some devices
+                case STATE_WAITING_NON_PRECAPTURE: {
+                    Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                    /* AEがやっと完了、もしくは、null(一部のデバイスではnullになるらしい)、撮る */
+                    if(aeState == null || aeState != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                        mState = STATE_PICTURE_TAKEN;
+                        captureStillPicture();
+                    }
+                    break;
+                }
+            }
+        }
     };
 
-    /* CaptureCallback::onCaptureProgressed() -> */
-    /*                                           ↑ココ                                  */
+    /********************************************************************************************************************************************************************************************
+     * 撮像(シャッターON)シーケンス
+     *             takePicture()                    CaptureCallback::onCaptureProgressed()               CaptureCallback::onCaptureProgressed()       CaptureCallback::onCaptureProgressed()
+     *               -> lockFocus()                   -> runPrecaptureSequence()
+     * STATE_PREVIEW(0) --------> STATE_WAITING_LOCK(1) ------------------------> STATE_WAITING_PRECAPTURE(2) -----------> STATE_WAITING_NON_PRECAPTURE(3) --------------> STATE_PICTURE_TAKEN(4)
+     *              　　　　　　　　　AotoFocus開始              AF完了待ち             AE開始                       AE終了待ち　　　　　　　　　　　　　　　　　　　　　　AE終了待ち2       撮る
+     ********************************************************************************************************************************************************************************************/
+    private void takePicture() {
+        lockFocus();
+    }
 
-    /**********************************************************************
-     * Handler終了,TextureView終了シーケンス
-     **********************************************************************/
+    private void lockFocus() {
+        try {
+            /* This is how to tell the camera to lock focus. */
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+            /* Tell #mCaptureCallback to wait for the lock. */
+            mState = STATE_WAITING_LOCK;
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+        }
+        catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 静止画像キャプチャ前のプレCaptureシーケンスを実行
+     * AutoFocusシーケンスが完了後にこの関数をコールする
+     */
+    private void runPrecaptureSequence() {
+        try{
+            /* This is how to tell the camera to trigger. */
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER, CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
+            /* Tell #mCaptureCallback to wait for the pre-capture sequence to be set. */
+            mState = STATE_WAITING_PRECAPTURE;
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+        }
+        catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 静止画キャプチャ実行。
+     * AFもAEも完了したら、この関数を呼ぶ。(AF/AEが不要なら即呼び出しでもOK)
+     * Capture a still picture. This method should be called when we get a response in
+     * {@link #mCaptureCallback} from both {lockFocus()}.
+     */
+    private void captureStillPicture() {
+        try{
+            /* This is the CaptureRequest.Builder that we use to take a picture. */
+            final CaptureRequest.Builder captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            captureBuilder.addTarget(mImageReader4TakePicture.getSurface());
+
+            /* Use the same AE and AF modes as the preview. */
+            captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            if(mViewModel.getFlashSupported())
+                captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+
+            /* 画像に撮像時角度を設定  */
+            int rotation          = mViewModel.getOrientation();
+            int sensorOrientation = mViewModel.getSensorOrientation();
+            captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, (MainViewModel.ORIENTATIONS.get(rotation) + sensorOrientation + 270) % 360);
+
+            CameraCaptureSession.CaptureCallback lCaptureCallback = new CameraCaptureSession.CaptureCallback() {
+                @Override
+                public void onCaptureCompleted(@NonNull CameraCaptureSession session, @NonNull CaptureRequest request, @NonNull TotalCaptureResult result) {
+                    unlockFocus();
+                }
+            };
+
+            mCaptureSession.stopRepeating();
+            mCaptureSession.abortCaptures();
+            mCaptureSession.capture(captureBuilder.build(), lCaptureCallback, mBackgroundHandler);
+        }
+        catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * フォーカス解除(Unlock the focus)
+     * 静止画キャプチャの実行の終わりに呼ぶ必要がある。
+     * This method should be called when still image capture sequence is finished.
+     */
+    private void unlockFocus() {
+        try {
+            /* Reset the auto-focus trigger */
+            mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+            if(mViewModel.getFlashSupported())
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH);
+            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, mBackgroundHandler);
+            /* After this, the camera will go back to the normal state of preview. */
+            mState = STATE_PREVIEW;
+            mCaptureSession.setRepeatingRequest(mRequestforPreview, mCaptureCallback, mBackgroundHandler);
+        }
+        catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /*******************************
+     * Handler終了, カメラ終了シーケンス
+     * onPause() -> closeCamera()
+     *******************************/
     @Override
     public void onPause() {
         super.onPause();
@@ -588,6 +587,8 @@ public class MainFragment extends Fragment {
         }
     }
 
+    /*****************
+     * Close Camera */
     private void closeCamera() {
         try {
             mCameraOpenCloseSemaphore.acquire();
@@ -599,16 +600,71 @@ public class MainFragment extends Fragment {
                 mCameraDevice.close();
                 mCameraDevice = null;
             }
-//            if(mImageReader != null) {
-//                mImageReader.close();
-//                mImageReader = null;
-//            }
+            if(mImageReader4TakePicture != null) {
+                mImageReader4TakePicture.close();
+                mImageReader4TakePicture = null;
+            }
         }
         catch (InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
         }
         finally {
             mCameraOpenCloseSemaphore.release();
+        }
+    }
+
+    /**
+     * ImageSaver class
+     * Saves a JPEG {@link Image} into the specified {@link ContentResolver}.
+     */
+    private static class ImageSaver implements Runnable {
+        private final byte[] mBytes;
+        private final String mDirPath;
+        ImageSaver(String saveDir, byte[] bytes) {
+            mDirPath = saveDir;
+            mBytes   = bytes;
+        }
+
+        @Override
+        public void run() {
+            ContentValues values = new ContentValues();
+            /* ファイル名 */
+            String filename = String.format("%s.jpg", mDf.format(new Date()));
+            values.put(MediaStore.Images.Media.DISPLAY_NAME, filename);
+            /* MIMEの設定 */
+            values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+            /* 生成日時 */
+            values.put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000);
+            /* 書込み時メディアファイルに排他アクセスする */
+            values.put(MediaStore.Images.Media.IS_PENDING, 1);
+            /* 実配置場所設定 */
+            values.put("_data", mDirPath + "/" + filename);
+            /* コンテンツ管理領域に、Picture領域を予約 */
+            Uri dstUri = mResolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+
+            /* Picture領域に書込み */
+            OutputStream outstream = null;
+            try {
+                outstream = mResolver.openOutputStream(dstUri);
+                outstream.write(mBytes);
+            }
+            catch(IOException e) {
+                e.printStackTrace();
+            }
+            finally {
+            /* 終了処理 */
+                values.clear();
+                /*　排他的にアクセスの解除 */
+                values.put(MediaStore.Images.Media.IS_PENDING, 0);
+                mResolver.update(dstUri, values, null, null);
+                try {
+                    if(outstream != null)
+                        outstream.close();
+                }
+                catch(IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 

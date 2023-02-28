@@ -2,30 +2,19 @@ package com.tks.rapidfirecamera;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventCallback;
 import android.hardware.SensorManager;
-import android.hardware.camera2.CameraCharacteristics;
 import android.os.Bundle;
-import android.os.Environment;
-import android.util.Log;
 import android.util.Pair;
-import android.util.Size;
 import android.view.KeyEvent;
 import android.view.Surface;
-import android.widget.Toast;
-
-import java.io.File;
 
 import kotlin.jvm.functions.Function1;
 
@@ -119,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
             else if(sensorY<-5) rotetion = Surface.ROTATION_180;
             else if(sensorX> 5) rotetion = Surface.ROTATION_270;
             else if(sensorX<-5) rotetion = Surface.ROTATION_90;
+            mViewModel.setOrientation(rotetion);
 
             /* 起動直後、何もしない */
             if(mNextRotation == -1 || mRotation == -1) {
@@ -141,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
             /* 回転状態に変化あり(mNextRotation!=mRotation)、かつ、回転状態変更準備中(mNextRotation==rotetion)の時、回転状態変更準備中カウンタをインクリメント */
             else {
                 mRotationTransCounter++;
-                if(mRotationTransCounter >= 5) {
+                if(mRotationTransCounter >= 2) {
                     /* 回転角度(from -> to)を求める関数 */
                     Function1<Pair<Integer,Integer>, Pair<Integer,Integer>> getRotDegreesFromTo = (rots) -> {
                         if(     rots.first == Surface.ROTATION_0  && rots.second == Surface.ROTATION_90 )  return new Pair<>(360, 270);/*"上向き"->"横↓向き"*/
@@ -160,10 +150,10 @@ public class MainActivity extends AppCompatActivity {
                         else if(rots.first == Surface.ROTATION_270 && rots.second == Surface.ROTATION_90)  return new Pair<>( 90,270);   /*"横↑向き"->"横↓向き"*/
                         else if(rots.first == Surface.ROTATION_270 && rots.second == Surface.ROTATION_180) return new Pair<>( 90,180);   /*"横↑向き"->  "↓向き"*/
 
-                        return new Pair<>(0,0);
+                        return new Pair<>(90, 90);
                     };
                     /* 上記関数を呼ぶ */
-                    mViewModel.setRotation(getRotDegreesFromTo.invoke(new Pair<>(mRotation, mNextRotation)));
+                    mViewModel.setTransRotation(getRotDegreesFromTo.invoke(new Pair<>(mRotation, mNextRotation)));
                     mRotation = mNextRotation;
                 }
                 return;

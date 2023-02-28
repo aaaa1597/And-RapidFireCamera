@@ -150,8 +150,13 @@ public class MainFragment extends Fragment {
         });
 
         /* 設定ボタンの再配置 */
-        Insets insets = mActivity.getWindowManager().getCurrentWindowMetrics().getWindowInsets().getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
-        view.findViewById(R.id.ll_config).setTranslationY(insets.top + 1);
+        view.findViewById(R.id.ll_config).setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
+            @NonNull @Override
+            public WindowInsets onApplyWindowInsets(@NonNull View v, @NonNull WindowInsets insets) {
+                v.setTranslationY(insets.getInsets(WindowInsets.Type.statusBars()).top + 1);
+                return insets;
+            }
+        });
 
         /* 設定ボタン押下イベント生成 */
         view.findViewById(R.id.btn_setting).setOnClickListener(new View.OnClickListener() {

@@ -66,7 +66,7 @@ public class ConfigFragment extends Fragment {
         Resources res = activity.getResources();
         Size ressize  = mViewModel.getTakePictureSize();
         mConfigItems.add(new ConfigItem(res.getString(R.string.str_resolution)  , String.format(Locale.JAPAN, "%d x %d", ressize.getWidth(), ressize.getHeight())));
-        mConfigItems.add(new ConfigItem(res.getString(R.string.str_filelocation), mViewModel.getSavePath()));
+        mConfigItems.add(new ConfigItem(res.getString(R.string.str_filelocation), mViewModel.getSaveFullPath()));
 
         /* 撮像解像度を変更した時の動作 */
         mViewModel.setOnChageTakePictureSizeListner().observe(getViewLifecycleOwner(), size -> {

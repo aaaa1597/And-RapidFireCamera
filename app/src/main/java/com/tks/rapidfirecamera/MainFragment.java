@@ -39,6 +39,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.provider.MediaStore;
@@ -221,7 +222,7 @@ public class MainFragment extends Fragment {
                 buffer.get(bytes);
                 image.close();
                 /* 画像保存処理を非同期で実行 */
-                mBackgroundHandler.post(new ImageSaver(mViewModel.getSavePath(), bytes));
+                mBackgroundHandler.post(new ImageSaver(mViewModel.getSaveFullPath(), mViewModel.getSaveRelativePath(), bytes));
             }
         }, mBackgroundHandler);
 
@@ -619,17 +620,20 @@ public class MainFragment extends Fragment {
      */
     private static class ImageSaver implements Runnable {
         private final byte[] mBytes;
-        private final String mDirPath;
-        ImageSaver(String saveDir, byte[] bytes) {
-            mDirPath = saveDir;
-            mBytes   = bytes;
+        private final String mDirFullPath;
+        private final String mDirRelativePath;
+        ImageSaver(String savefullDir, String saveRelativeDir, byte[] bytes) {
+            mDirFullPath    = savefullDir;
+            mDirRelativePath= saveRelativeDir;
+            mBytes          = bytes;
         }
 
         @Override
         public void run() {
+            String filename = String.format("%s.jpg", mDf.format(new Date()));
+
             ContentValues values = new ContentValues();
             /* ファイル名 */
-            String filename = String.format("%s.jpg", mDf.format(new Date()));
             values.put(MediaStore.Images.Media.DISPLAY_NAME, filename);
             /* MIMEの設定 */
             values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
@@ -637,12 +641,13 @@ public class MainFragment extends Fragment {
             values.put(MediaStore.Images.Media.DATE_MODIFIED, System.currentTimeMillis() / 1000);
             /* 書込み時メディアファイルに排他アクセスする */
             values.put(MediaStore.Images.Media.IS_PENDING, 1);
-            /* 実配置場所設定 */
-            values.put("_data", mDirPath + "/" + filename);
-            /* コンテンツ管理領域に、Picture領域を予約 */
-            Uri dstUri = mResolver.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), values);
+            /* 配置場所設定 */
+            values.put(MediaStore.Images.Media.RELATIVE_PATH, mDirRelativePath);
+            /* ContentResolverに追加 */
+            Uri dstUri = mResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 
-            /* Picture領域に書込み */
+
+            /* ContentResolverに追加した場所に書込み */
             OutputStream outstream = null;
             try {
                 outstream = mResolver.openOutputStream(dstUri);

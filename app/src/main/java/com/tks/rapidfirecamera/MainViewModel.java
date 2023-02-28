@@ -1,11 +1,7 @@
 package com.tks.rapidfirecamera;
 
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.SharedPreferences;
-import android.net.Uri;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Pair;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -15,8 +11,6 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.Arrays;
 
 public class MainViewModel extends ViewModel {
@@ -32,8 +26,9 @@ public class MainViewModel extends ViewModel {
      * 画像保存場所
      * ************/
     private static String RAPIDFIRE = "/Rapidfie";
+    private static String RELATIVEPATH = "Pictures" + RAPIDFIRE + "/";
     private String mSavePath = "";
-    public String getSavePath() {
+    public String getSaveFullPath() {
         if(mSavePath.equals("")) {
             /* 保存場所 読込み */
             mSavePath = mSharedPref.getString(ConfigFragment.PREF_KEY_SAVEPATH, "");
@@ -52,6 +47,11 @@ public class MainViewModel extends ViewModel {
         }
         return mSavePath;
     }
+
+    public String getSaveRelativePath() {
+        return RELATIVEPATH;
+    }
+
     /***************
      * カメラId
      * ************/

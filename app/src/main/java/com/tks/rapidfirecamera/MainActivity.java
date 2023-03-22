@@ -12,8 +12,10 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventCallback;
 import android.hardware.SensorManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Pair;
 import android.view.KeyEvent;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 
 import kotlin.jvm.functions.Function1;
@@ -29,6 +31,13 @@ public class MainActivity extends AppCompatActivity {
         mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         mViewModel.setSharedPreferences(getSharedPreferences(ConfigFragment.PREF_APPSETTING, Context.MODE_PRIVATE));
+        mOrientationEventListener = new OrientationEventListener(getApplicationContext()) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                int degree = ((orientation + 45) / 90) * 90;
+//                Log.d("aaaaa", String.format("端末の角度=%d", degree));
+            }
+        };
 
         /* 全画面アプリ設定 */
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
@@ -61,12 +70,14 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Sensor accel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mSensorManager.registerListener(mSensorEventCallback, accel, SensorManager.SENSOR_DELAY_NORMAL);
+        mOrientationEventListener.enable();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         mSensorManager.unregisterListener(mSensorEventCallback);
+        mOrientationEventListener.disable();
     }
 
     @Override
@@ -83,6 +94,11 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onKeyDown(keyCode, event);
     }
+
+    /* ***********
+     * 縦横切替え(new)
+     * ************/
+    private OrientationEventListener mOrientationEventListener;
 
     /* ***********
      * 縦横切替え

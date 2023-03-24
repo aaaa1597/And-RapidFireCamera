@@ -240,7 +240,7 @@ public class MainFragment extends Fragment {
             /* 権限チェック -> 権限なし時はアプリ終了!!(CameraManager::openCamera()をコールする前には必ず必要) */
             if(ActivityCompat.checkSelfPermission(mActivity, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                 new Throwable().printStackTrace();
-                ErrorDialog.newInstance(getString(R.string.request_permission)).show(getChildFragmentManager(), "Error!!");
+                MainActivity.ErrorDialog.newInstance(getString(R.string.request_permission)).show(getChildFragmentManager(), "Error!!");
             }
             manager.openCamera(cameraid, mDeviceStateCallback, mBackgroundHandler);
         }
@@ -675,39 +675,6 @@ public class MainFragment extends Fragment {
                     e.printStackTrace();
                 }
             }
-        }
-    }
-
-    /**************************************
-     * Utils
-     * ************************************/
-    public static class ErrorDialog extends DialogFragment {
-        private static final String ARG_MESSAGE = "message";
-        public static ErrorDialog newInstance(String message) {
-            ErrorDialog dialog = new ErrorDialog();
-            Bundle args = new Bundle();
-            args.putString(ARG_MESSAGE, message);
-            dialog.setArguments(args);
-            return dialog;
-        }
-
-        @NonNull
-        @Override
-        public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-            final Activity activity = getActivity();
-            if(activity == null) throw new RuntimeException("illegal state!! activity is null!!");
-            android.os.Bundle bundle = getArguments();
-            if(bundle == null) throw new RuntimeException("illegal state!! bundle is null!!");
-
-            return new AlertDialog.Builder(activity)
-                    .setMessage(bundle.getString(ARG_MESSAGE))
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialogInterface, int i) {
-                            activity.finish();
-                        }
-                    })
-                    .create();
         }
     }
 }

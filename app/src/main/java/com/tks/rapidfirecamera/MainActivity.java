@@ -2,11 +2,18 @@ package com.tks.rapidfirecamera;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.WindowCompat;
+import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventCallback;
@@ -58,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     else {
                         /* 権限取得 拒否時 -> ErrorダイアグOpenでアプリ終了!! */
-                        MainFragment.ErrorDialog.newInstance(getString(R.string.request_permission)).show(getSupportFragmentManager(), "Error!!");
+                        ErrorDialog.newInstance(getString(R.string.request_permission)).show(getSupportFragmentManager(), "Error!!");
                     }
                 });
 
@@ -91,5 +98,38 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onKeyDown(keyCode, event);
+    }
+
+    /**************************************
+     * Utils
+     * ************************************/
+    public static class ErrorDialog extends DialogFragment {
+        private static final String ARG_MESSAGE = "message";
+        public static ErrorDialog newInstance(String message) {
+            ErrorDialog dialog = new ErrorDialog();
+            Bundle args = new Bundle();
+            args.putString(ARG_MESSAGE, message);
+            dialog.setArguments(args);
+            return dialog;
+        }
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+            final Activity activity = getActivity();
+            if(activity == null) throw new RuntimeException("illegal state!! activity is null!!");
+            android.os.Bundle bundle = getArguments();
+            if(bundle == null) throw new RuntimeException("illegal state!! bundle is null!!");
+
+            return new AlertDialog.Builder(activity)
+                    .setMessage(bundle.getString(ARG_MESSAGE))
+                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            activity.finish();
+                        }
+                    })
+                    .create();
+        }
     }
 }

@@ -165,12 +165,9 @@ public class MainViewModel extends ViewModel {
     /***************
      * 回転発生
      * ************/
-    private final MutableLiveData<Pair<Integer, Integer>> mTransRotation = new MutableLiveData<>();
-    public void setTransRotation(Pair<Integer, Integer> rotfromto) {
-        mTransRotation.postValue(rotfromto);
-    }
+    private final MutableLiveData<Pair<Integer, Integer>> mOnChageRotation = new MutableLiveData<>();
     public MutableLiveData<Pair<Integer, Integer>> setOnChageRotationListner() {
-        return mTransRotation;
+        return mOnChageRotation;
     }
 
     /***************
@@ -183,9 +180,11 @@ public class MainViewModel extends ViewModel {
         ORIENTATIONS.append(Surface.ROTATION_180, 270);
         ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
-    private int mOrientation = -1;
-    public void setOrientation(int orientation) {
-        mOrientation = orientation;
+    private int mOrientation = 0;
+    public void setOrientation(int newOrientation) {
+        if(mOrientation != newOrientation)
+            mOnChageRotation.postValue(new Pair<>(mOrientation, newOrientation));
+        mOrientation = newOrientation;
     }
     public int getOrientation() {
         return mOrientation;

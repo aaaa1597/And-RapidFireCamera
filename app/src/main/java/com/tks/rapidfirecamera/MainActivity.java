@@ -22,20 +22,21 @@ import kotlin.jvm.functions.Function1;
 
 public class MainActivity extends AppCompatActivity {
     private MainViewModel mViewModel;
+    private OrientationEventListener mOrientationEventListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         mViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         mViewModel.setSharedPreferences(getSharedPreferences(ConfigFragment.PREF_APPSETTING, Context.MODE_PRIVATE));
         mOrientationEventListener = new OrientationEventListener(getApplicationContext()) {
             @Override
             public void onOrientationChanged(int orientation) {
-                int degree = ((orientation + 45) / 90) * 90;
-//                Log.d("aaaaa", String.format("端末の角度=%d", degree));
+                int orientationdegree = ((orientation + 45) / 90) * 90;    /* 0:↑ 90:→ 180:↓ 270:← */
+//                Log.d("aaaaa", String.format("端末の角度=%d", orientationdegree));
+                mViewModel.setOrientation(orientationdegree);
             }
         };
 
@@ -68,15 +69,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        Sensor accel = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mSensorManager.registerListener(mSensorEventCallback, accel, SensorManager.SENSOR_DELAY_NORMAL);
         mOrientationEventListener.enable();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        mSensorManager.unregisterListener(mSensorEventCallback);
         mOrientationEventListener.disable();
     }
 
@@ -94,86 +92,4 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onKeyDown(keyCode, event);
     }
-
-    /* ***********
-     * 縦横切替え(new)
-     * ************/
-    private OrientationEventListener mOrientationEventListener;
-
-    /* ***********
-     * 縦横切替え
-     * ************/
-    private SensorManager mSensorManager;
-    private int mRotation             = -1;
-    private int mNextRotation         = -1;
-    private int mRotationTransCounter = 0;
-    final private SensorEventCallback mSensorEventCallback = new SensorEventCallback() {
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-            super.onSensorChanged(event);
-
-            if (event.sensor.getType() != Sensor.TYPE_ACCELEROMETER)
-                return;
-
-            float sensorX = event.values[0];
-            float sensorY = event.values[1];
-            float sensorZ = event.values[2];
-
-            int rotetion = -1;
-            if(sensorY>5)       rotetion = Surface.ROTATION_0;
-            else if(sensorY<-5) rotetion = Surface.ROTATION_180;
-            else if(sensorX> 5) rotetion = Surface.ROTATION_270;
-            else if(sensorX<-5) rotetion = Surface.ROTATION_90;
-            mViewModel.setOrientation(rotetion);
-
-            /* 起動直後、何もしない */
-            if(mNextRotation == -1 || mRotation == -1) {
-                mRotation     = rotetion;
-                mNextRotation = rotetion;
-                return;
-            }
-
-            /* 回転状態が変更前に、変化した時はカウンタリセット */
-            if(mNextRotation != rotetion) {
-                mNextRotation = rotetion;
-                mRotationTransCounter = 0;
-                return;
-            }
-            /* 回転状態に変化がない時は、何もしない */
-            else if(mNextRotation == mRotation) {
-                mRotationTransCounter = 0;
-                return;
-            }
-            /* 回転状態に変化あり(mNextRotation!=mRotation)、かつ、回転状態変更準備中(mNextRotation==rotetion)の時、回転状態変更準備中カウンタをインクリメント */
-            else {
-                mRotationTransCounter++;
-                if(mRotationTransCounter >= 2) {
-                    /* 回転角度(from -> to)を求める関数 */
-                    Function1<Pair<Integer,Integer>, Pair<Integer,Integer>> getRotDegreesFromTo = (rots) -> {
-                        if(     rots.first == Surface.ROTATION_0  && rots.second == Surface.ROTATION_90 )  return new Pair<>(360, 270);/*"上向き"->"横↓向き"*/
-                        else if(rots.first == Surface.ROTATION_0  && rots.second == Surface.ROTATION_180)  return new Pair<>(  0, 180);/*"上向き"->  "↓向き"*/
-                        else if(rots.first == Surface.ROTATION_0  && rots.second == Surface.ROTATION_270)  return new Pair<>(  0,  90);/*"上向き"->"横↑向き"*/
-
-                        else if(rots.first == Surface.ROTATION_90  && rots.second == Surface.ROTATION_0 )  return new Pair<>( 270,360);   /*"横↓向き"->  "上向き"*/
-                        else if(rots.first == Surface.ROTATION_90  && rots.second == Surface.ROTATION_180) return new Pair<>( 270,180);   /*"横↓向き"->  "↓向き"*/
-                        else if(rots.first == Surface.ROTATION_90  && rots.second == Surface.ROTATION_270) return new Pair<>( 270, 90);   /*"横↓向き"->"横↑向き"*/
-
-                        else if(rots.first == Surface.ROTATION_180 && rots.second == Surface.ROTATION_0 )  return new Pair<>( 180, 0);   /*"↓向き"->  "上向き"*/
-                        else if(rots.first == Surface.ROTATION_180 && rots.second == Surface.ROTATION_90)  return new Pair<>( 180,270);   /*"↓向き"->"横↓向き"*/
-                        else if(rots.first == Surface.ROTATION_180 && rots.second == Surface.ROTATION_270) return new Pair<>( 180, 90);   /*"↓向き"->"横↑向き"*/
-
-                        else if(rots.first == Surface.ROTATION_270 && rots.second == Surface.ROTATION_0 )  return new Pair<>( 90,  0);   /*"横↑向き"->  "上向き"*/
-                        else if(rots.first == Surface.ROTATION_270 && rots.second == Surface.ROTATION_90)  return new Pair<>( 90,270);   /*"横↑向き"->"横↓向き"*/
-                        else if(rots.first == Surface.ROTATION_270 && rots.second == Surface.ROTATION_180) return new Pair<>( 90,180);   /*"横↑向き"->  "↓向き"*/
-
-                        return new Pair<>(90, 90);
-                    };
-                    /* 上記関数を呼ぶ */
-                    mViewModel.setTransRotation(getRotDegreesFromTo.invoke(new Pair<>(mRotation, mNextRotation)));
-                    mRotation = mNextRotation;
-                }
-                return;
-            }
-        }
-    };
 }
